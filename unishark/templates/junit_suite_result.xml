@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="{{ suite_sum.name }}" tests="{{ suite_sum.run }}" failures="{{ suite_sum.fail }}"
+           errors="{{ suite_sum.error }}" skipped="{{ suite_sum.skipped }}" time="{{ suite_sum.duration }}">
+    {% for mod_sum in suite_sum.mod_sum_list -%}
+    {% for cls_sum in mod_sum.cls_sum_list -%}
+    {% for mth_sum in cls_sum.mth_sum_list -%}
+    <testcase name="{{ mth_sum.name }}" time="{{ mth_sum.duration }}" classname="{{ cls_sum.name }}"
+              status="{{ mth_sum.status }}">
+        {% if mth_sum.status == "Passed" -%}
+        <system-out>
+            <![CDATA[{{ mth_sum.doc | safe }}]]>
+            <![CDATA[{{ mth_sum.output | safe }}]]>
+        </system-out>
+        {% endif -%}
+        {% if mth_sum.status == "Skipped" -%}
+        <skipped>
+            <![CDATA[{{ mth_sum.trace_back | safe }}]]>
+            <![CDATA[{{ mth_sum.doc | safe }}]]>
+            <![CDATA[{{ mth_sum.output | safe }}]]>
+        </skipped>
+        {% endif -%}
+        {% if mth_sum.status == "Error" -%}
+        <error>
+            <![CDATA[{{ mth_sum.trace_back | safe }}]]>
+            <![CDATA[{{ mth_sum.doc | safe }}]]>
+            <![CDATA[{{ mth_sum.output | safe }}]]>
+        </error>
+        {% endif -%}
+        {% if mth_sum.status == "Failed" -%}
+        <failure>
+            <![CDATA[{{ mth_sum.trace_back | safe }}]]>
+            <![CDATA[{{ mth_sum.doc | safe }}]]>
+            <![CDATA[{{ mth_sum.output | safe }}]]>
+        </failure>
+        {% endif -%}
+    </testcase>
+    {% endfor -%}
+    {% endfor -%}
+    {% endfor -%}
+</testsuite>

@@ -1,0 +1,24 @@
+version: 1
+
+suites:
+  suite_name_1:
+    disable: False
+    package: example
+    groups:
+      group1:
+        disable: False
+        granularity: module
+        modules: [test_module1, test_module2]
+      group2:
+        disable: False
+        granularity: class
+        classes: [test_module3.MyTestClass5, test_module3.MyTestClass6]
+  suite_name_2:
+    disable: False
+    package: example
+    groups:
+      group1:
+        disable: False
+        granularity: class
+        classes: [test_module3.MyTestClass7,
+                  test_module3.MyTestClass8]

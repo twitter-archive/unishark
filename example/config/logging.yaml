@@ -1,0 +1,30 @@
+version: 1
+
+formatters:
+  simple:
+    format: '[%(asctime)s][%(name)s][%(levelname)s]: %(message)s'
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stdout
+  html:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://unishark.out
+
+loggers:
+  unishark:
+    level: INFO
+    handlers: [console]
+    propagate: False
+  example:
+    level: DEBUG
+    handlers: [html]
+    propagate: False
+
+root:
+  level: INFO
+  handlers: [console]
+  propagate: False

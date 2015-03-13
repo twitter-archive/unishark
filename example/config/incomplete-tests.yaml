@@ -1,0 +1,28 @@
+version: 1
+
+suites:
+  suite_name_1:
+    package: example
+    disable: False
+    groups:
+      group1:
+        disable: False
+        granularity: module
+        modules: [test_module1, test_module2]
+        except_classes: [test_module2.MyTestClass3]
+        except_methods: [test_module1.MyTestClass1.test_2]
+      group2:
+        disable: False
+        granularity: class
+        classes: [test_module3.MyTestClass5]
+        except_methods: [test_module3.MyTestClass5.test_11]
+  suite_name_2:
+    package: example
+    disable: False
+    groups:
+      group3:
+        disable: False
+        granularity: method
+        methods: [test_module3.MyTestClass6.test_13,
+                  test_module3.MyTestClass7.test_15,
+                  test_module3.MyTestClass8.test_17]

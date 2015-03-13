@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="{{ tests_sum.name }}" failures="{{ tests_sum.fail }}" errors="{{ tests_sum.error }}" tests="{{ tests_sum.run }}" time="{{ tests_sum.duration }}">
+    {% for suite_sum in tests_sum.suite_sum_list %}
+    <testsuite name="{{ suite_sum.name }}" tests="{{ suite_sum.run }}" failures="{{ suite_sum.fail }}"
+               errors="{{ suite_sum.error }}" skipped="{{ suite_sum.skipped }}"
+               time="{{ suite_sum.duration }}"/>
+    {% endfor %}
+</testsuites>
