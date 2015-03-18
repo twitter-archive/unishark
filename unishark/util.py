@@ -5,11 +5,11 @@ import inspect
 
 
 class ContextManager(object):
-    _shared_state = {}
+    _shared_state = dict()
 
     def __init__(self):
         self.__dict__ = self._shared_state
-        self._context_dict = {}
+        self._context_dict = dict()
 
     def get(self, name):
         return self._context_dict[name]
@@ -19,10 +19,6 @@ class ContextManager(object):
 
 
 contexts = ContextManager()
-
-
-def calc_duration(start_time, end_time):
-    return end_time - start_time
 
 
 def get_module_name(obj):

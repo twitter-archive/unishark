@@ -19,6 +19,8 @@ class DefaultTestLoader:
         for suite_name, content in self._parse_tests_from_dict(dict_conf).items():
             package = content['package']
             test_case_names = content['test_case_names']
+            if not test_case_names:
+                log.warning('Test suite %r is empty.' % suite_name)
             suites_dict[suite_name] = {
                 'package': package,
                 'suite': self._test_loader.loadTestsFromNames(test_case_names)
@@ -43,41 +45,61 @@ class DefaultTestLoader:
                 gran = group['granularity']
                 if gran == 'module':
                     mod_names = group['modules']
-                    mod_names = list(set(mod_names))
+                    mod_names = set(mod_names)
                     self._build_name_tree(pkg_name, mod_names)
                     if 'except_classes' in group:
                         self._del_except_classes_in_name_tree(group['except_classes'])
                     if 'except_methods' in group:
                         self._del_except_methods_in_name_tree(group['except_methods'])
-                    test_cases_names.extend(self._get_full_method_names_from_name_tree(mod_names))
+                    test_cases_names.extend(self._get_full_method_names_from_tree(pkg_name))
                 elif gran == 'class':
-                    cls_names = group['classes']
-                    cls_names = list(set(cls_names))
-                    mod_names = map(lambda n: '.'.join(n.split('.')[:-1]), cls_names)
-                    mod_names = list(set(mod_names))
-                    self._build_name_tree(pkg_name, mod_names, filter_cls_names=cls_names)
+                    long_cls_names = group['classes']
+                    long_cls_names = set(long_cls_names)
+                    mod_names = set()
+                    for long_cls_name in long_cls_names:
+                        mod_name, _ = self.__class__._get_cls_name_parts(long_cls_name)
+                        mod_names.add(mod_name)
+                    self._build_name_tree(pkg_name, mod_names, filter_cls_names=long_cls_names)
                     if 'except_methods' in group:
                         self._del_except_methods_in_name_tree(group['except_methods'])
-                    test_cases_names.extend(self._get_full_method_names_from_name_tree(mod_names))
+                    test_cases_names.extend(self._get_full_method_names_from_tree(pkg_name))
                 elif gran == 'method':
-                    test_cases_names.extend(group['methods'])
-            test_cases_full_names = list(map(lambda n: '.'.join((pkg_name, n)), test_cases_names)) \
-                if pkg_name else test_cases_names
-            res_suites[suite_name] = {'package': pkg_name, 'test_case_names': test_cases_full_names}
+                    long_mth_names = group['methods']
+                    long_mth_names = set(long_mth_names)
+                    for long_mth_name in long_mth_names:
+                        self.__class__._get_mth_name_parts(long_mth_name)
+                    full_mth_names = list(map(lambda x: '.'.join((pkg_name, x)), long_mth_names)) \
+                        if pkg_name else long_mth_names
+                    test_cases_names.extend(full_mth_names)
+                else:
+                    raise ValueError('Granularity must be in %r.' % ['module', 'class', 'method'])
+            res_suites[suite_name] = {'package': pkg_name, 'test_case_names': set(test_cases_names)}
         log.info('Parsed test config successfully.')
         return res_suites
 
+    @staticmethod
+    def _get_cls_name_parts(long_name):
+        parts = long_name.split('.')
+        if len(parts) != 2:
+            raise ValueError('%r does not comply with: "module.class".' % long_name)
+        return parts[0], parts[1]
+
+    @staticmethod
+    def _get_mth_name_parts(long_name):
+        parts = long_name.split('.')
+        if len(parts) != 3:
+            raise ValueError('%r does not comply with: "module.class.method".' % long_name)
+        return parts[0], parts[1], parts[2]
+
     def _del_except_classes_in_name_tree(self, except_cls_names):
-        for except_cls_name in except_cls_names:
-            mod_name = '.'.join(except_cls_name.split('.')[:-1])
-            self._del_entry_in_name_tree(mod_name, cls_name=except_cls_name)
+        for except_cls_name in set(except_cls_names):
+            mod_name, cls_name = self.__class__._get_cls_name_parts(except_cls_name)
+            self._del_cls_in_name_tree(mod_name, cls_name)
 
     def _del_except_methods_in_name_tree(self, except_mth_names):
-        for except_mth_name in except_mth_names:
-            parts = except_mth_name.split('.')
-            mod_name = '.'.join(parts[:-2])
-            except_cls_name = '.'.join(parts[:-1])
-            self._del_entry_in_name_tree(mod_name, cls_name=except_cls_name, mth_name=except_mth_name)
+        for except_mth_name in set(except_mth_names):
+            mod_name, cls_name, mth_name = self.__class__._get_mth_name_parts(except_mth_name)
+            self._del_mth_in_name_tree(mod_name, cls_name, mth_name)
 
     def _get_method_names_by_class(self, cls):
         # cls.methods is a dict of 'method_name': method_line_no
@@ -93,6 +115,22 @@ class DefaultTestLoader:
         # TODO filter classes to get only subclasses of unittest.TestCase
         return classes
 
+    # A name tree is like:
+    # tree = {
+    #     'mod1': {
+    #         'cls1': {
+    #             'mth1', 'mth2', ...
+    #         },
+    #         'cls2': {
+    #             ...
+    #         },
+    #         ...
+    #     },
+    #     'mod2': {
+    #         ...
+    #     },
+    #     ...
+    # }
     def _build_name_tree(self, pkg_name, mod_names, filter_cls_names=None):
         tree = self._name_tree = dict()
         for mod_name in mod_names:
@@ -100,50 +138,57 @@ class DefaultTestLoader:
             if not classes:
                 continue
             if mod_name not in tree:
-                tree[mod_name] = []
+                tree[mod_name] = dict()
             for cls_name, cls in classes.items():
-                cls_name = '.'.join((mod_name, cls_name))  # 'module.class' as class's key
-                if filter_cls_names and cls_name not in filter_cls_names:
+                long_cls_name = '.'.join((mod_name, cls_name))
+                if filter_cls_names and long_cls_name not in filter_cls_names:
                     continue
                 mth_names = self._get_method_names_by_class(cls)
                 if not mth_names:
                     continue
                 if cls_name not in tree[mod_name]:
-                    tree[mod_name].append(cls_name)
-                if cls_name not in tree:
-                    tree[cls_name] = []
+                    tree[mod_name][cls_name] = set()
                 for mth_name in mth_names:
-                    mth_name = '.'.join((cls_name, mth_name))  # 'module.class.method' as method's key
-                    if mth_name not in tree[cls_name]:
-                        tree[cls_name].append(mth_name)
+                    tree[mod_name][cls_name].add(mth_name)
 
-    def _del_entry_in_name_tree(self, mod_name, cls_name=None, mth_name=None):
+    def _del_cls_in_name_tree(self, mod_name, cls_name):
+        long_cls_name = '.'.join((mod_name, cls_name))
         if mod_name not in self._name_tree:
-            return
-        if cls_name and mth_name:
-            if cls_name in self._name_tree:
-                mth_names = self._name_tree[cls_name]
-                if mth_name in mth_names:
-                    mth_names.remove(mth_name)
-                if not mth_names:
-                    del self._name_tree[cls_name]
-        elif cls_name:
-            cls_names = self._name_tree[mod_name]
-            if cls_name in cls_names:
-                cls_names.remove(cls_name)
-            if not cls_names:
-                del self._name_tree[mod_name]
-            if cls_name in self._name_tree:
-                del self._name_tree[cls_name]
+            raise ValueError('Cannot exclude %r: %r not found in modules list.' % (long_cls_name, mod_name))
 
-    def _get_full_method_names_from_name_tree(self, parents):
-        res_names = []
-        for parent in parents:
-            if parent not in self._name_tree:
-                continue
-            for child in self._name_tree[parent]:
-                res_names.append(child)
-        if not res_names:
-            return parents
-        else:
-            return self._get_full_method_names_from_name_tree(res_names)
+        if cls_name not in self._name_tree[mod_name]:
+            raise ValueError('Cannot exclude %r: %r not found in %r.' % (long_cls_name, cls_name, mod_name))
+
+        del self._name_tree[mod_name][cls_name]
+        if not self._name_tree[mod_name]:
+            del self._name_tree[mod_name]
+
+    def _del_mth_in_name_tree(self, mod_name, cls_name, mth_name):
+        long_mth_name = '.'.join((mod_name, cls_name, mth_name))
+        if mod_name not in self._name_tree:
+            raise ValueError('Cannot exclude %r: %r not found in modules list.' % (long_mth_name, mod_name))
+
+        if cls_name not in self._name_tree[mod_name]:
+            raise ValueError('Cannot exclude %r: %r not found in %r.' % (long_mth_name, cls_name, mod_name))
+
+        if mth_name not in self._name_tree[mod_name][cls_name]:
+            raise ValueError('Cannot exclude %r: %r not found in %r.' % (long_mth_name, mth_name, cls_name))
+
+        self._name_tree[mod_name][cls_name].remove(mth_name)
+        if not self._name_tree[mod_name][cls_name]:
+            del self._name_tree[mod_name][cls_name]
+        if not self._name_tree[mod_name]:
+            del self._name_tree[mod_name]
+
+    def _get_full_method_names_from_tree(self, pkg_name):
+        full_method_names = []
+        self._get_dotted_names_dfs(self._name_tree, pkg_name, full_method_names)
+        return full_method_names
+
+    def _get_dotted_names_dfs(self, tree, prefix, dotted_names):
+        for name in tree:
+            dotted_name = '.'.join((prefix, name)) if prefix else name
+            if type(tree) is set:  # leaf
+                dotted_names.append(dotted_name)
+            else:  # tree is dict
+                self._get_dotted_names_dfs(tree[name], dotted_name, dotted_names)

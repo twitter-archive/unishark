@@ -4,14 +4,14 @@ import sys
 import traceback
 import unittest
 import time
-from unishark.util import (calc_duration, get_long_class_name, get_long_method_name, get_module_name)
+from unishark.util import (get_long_class_name, get_long_method_name, get_module_name)
 
 _io_buffer = None
-if sys.version_info[0] < 3:  # compatible with python 2.x
-    import StringIO
+if sys.version_info[0] < 3:  # python 2.7
+    StringIO = __import__('StringIO')
     _io_buffer = StringIO.StringIO()
 else:
-    import io
+    io = __import__('io')
     _io_buffer = io.StringIO()
 
 out = err = _io_buffer
@@ -34,7 +34,7 @@ class BufferedTestResult(unittest.TextTestResult):
         self.results = dict()
         self.start_time = 0.0
         self.sum_duration = 0.0
-        self.success = 0
+        self.successes = 0
 
     def _add_result(self, test, duration, status, output, trace_back):
         mod_name = get_module_name(test)
@@ -77,39 +77,42 @@ class BufferedTestResult(unittest.TextTestResult):
         _io_buffer.truncate()
 
     def addSuccess(self, test):
-        duration = calc_duration(self.start_time, time.time())
+        duration = time.time() - self.start_time
         super(BufferedTestResult, self).addSuccess(test)
-        self.success += 1
+        self.successes += 1
         self._add_result(test, duration, PASS, _io_buffer.getvalue(), 'No Exceptions')
 
     def addError(self, test, error):
-        duration = calc_duration(self.start_time, time.time())
+        duration = time.time() - self.start_time
         super(BufferedTestResult, self).addError(test, error)
         test_obj, exception_str = self.errors[-1]
         self._add_result(test, duration, ERROR, _io_buffer.getvalue(), exception_str)
 
     def addFailure(self, test, error):
-        duration = calc_duration(self.start_time, time.time())
+        duration = time.time() - self.start_time
         super(BufferedTestResult, self).addFailure(test, error)
         test_obj, exception_str = self.failures[-1]
         self._add_result(test, duration, FAIL, _io_buffer.getvalue(), exception_str)
 
     def addSkip(self, test, reason):
-        duration = calc_duration(self.start_time, time.time())
+        duration = time.time() - self.start_time
         super(BufferedTestResult, self).addSkip(test, reason)
         test_obj, reason = self.skipped[-1]
         self._add_result(test, duration, SKIPPED, _io_buffer.getvalue(), 'Skipped: {0!r}'.format(reason))
 
     def addExpectedFailure(self, test, error):
-        duration = calc_duration(self.start_time, time.time())
+        duration = time.time() - self.start_time
         super(BufferedTestResult, self).addExpectedFailure(test, error)
         test_obj, exception_str = self.expectedFailures[-1]
         self._add_result(test, duration, EXPECTED_FAIL, _io_buffer.getvalue(), exception_str)
 
     def addUnexpectedSuccess(self, test):
-        duration = calc_duration(self.start_time, time.time())
+        duration = time.time() - self.start_time
         super(BufferedTestResult, self).addUnexpectedSuccess(test)
         self._add_result(test, duration, UNEXPECTED_PASS, _io_buffer.getvalue(), 'No Exceptions')
+
+    def wasSuccessful(self):
+        return len(self.failures) == len(self.errors) == len(self.unexpectedSuccesses) == 0
 
 
 class BufferedTestRunner(unittest.TextTestRunner):
@@ -123,7 +126,7 @@ class BufferedTestRunner(unittest.TextTestRunner):
     def run(self, test):
         start_time = time.time()
         result = super(BufferedTestRunner, self).run(test)
-        result.sum_duration = calc_duration(start_time, time.time())
+        result.sum_duration = time.time() - start_time
         from unishark.reporter import Reporter
         for reporter in self.reporters:
             if not isinstance(reporter, Reporter):

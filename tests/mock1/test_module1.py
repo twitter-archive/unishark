@@ -1,5 +1,3 @@
-__author__ = 'Ying Ni <yni@twitter.com>'
-
 import unishark
 import unittest
 import logging

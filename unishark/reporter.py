@@ -105,7 +105,7 @@ class SuiteSummary(Summary):
         # Suite summary
         self.duration = result.sum_duration
         self.run = result.testsRun
-        self.passed = result.success + len(result.expectedFailures)
+        self.passed = result.successes + len(result.expectedFailures)
         self.skipped = len(result.skipped)
         self.error = len(result.errors)
         self.fail = len(result.failures) + len(result.unexpectedSuccesses)
@@ -180,7 +180,7 @@ class MethodSummary(Summary):
 
 
 class HtmlReporter(Reporter):
-    def __init__(self, title='Reports', description='', dest='./results'):
+    def __init__(self, title='Reports', description='', dest='results'):
         super(HtmlReporter, self).__init__()
         self.description = description
         self.dest = dest
@@ -229,7 +229,7 @@ class HtmlReporter(Reporter):
                                date_time=date_time,
                                description=self._suite_description,
                                suite_sum=suite_sum)
-        filename = self.dest + '/' + self.suite_name + '_result.html'
+        filename = os.path.join(self.dest, self.suite_name + '_result.html')
         with codecs.open(filename, encoding='utf-8', mode='w+') as f:
             f.write(html)
         self._tests_sum.suite_sum_list.append(suite_sum)
@@ -253,18 +253,18 @@ class HtmlReporter(Reporter):
                                date_time=date_time,
                                description=self.description,
                                tests_sum=self._tests_sum)
-        with codecs.open(self.dest + '/overview.html', encoding='utf-8', mode='w+') as f:
+        with codecs.open(os.path.join(self.dest, 'overview.html'), encoding='utf-8', mode='w+') as f:
             f.write(html)
 
     def _generate_index(self):
         template = self.jinja_env.get_template('index.html')
         html = template.render(tests_sum=self._tests_sum)
-        with codecs.open(self.dest + '/index.html', encoding='utf-8', mode='w+') as f:
+        with codecs.open(os.path.join(self.dest, 'index.html'), encoding='utf-8', mode='w+') as f:
             f.write(html)
 
 
 class XUnitReporter(Reporter):
-    def __init__(self, title='XUnit Reports', description='', dest='./results'):
+    def __init__(self, title='XUnit Reports', description='', dest='results'):
         super(XUnitReporter, self).__init__()
         self.description = description
         self.dest = dest
@@ -288,7 +288,7 @@ class XUnitReporter(Reporter):
         # Generate report from single suite junit result template
         template = self.jinja_env.get_template('junit_suite_result.xml')
         xml = template.render(suite_sum=suite_sum)
-        filename = self.dest + '/' + self.suite_name + '_xunit_result.xml'
+        filename = os.path.join(self.dest, self.suite_name + '_xunit_result.xml')
         with codecs.open(filename, encoding='utf-8', mode='w+') as f:
             f.write(xml)
         self._tests_sum.suite_sum_list.append(suite_sum)
@@ -300,5 +300,5 @@ class XUnitReporter(Reporter):
         # Generate test suites summary
         template = self.jinja_env.get_template('junit_suites_result.xml')
         xml = template.render(tests_sum=self._tests_sum)
-        with codecs.open(self.dest + '/summary_xunit_result.xml', encoding='utf-8', mode='w+') as f:
+        with codecs.open(os.path.join(self.dest, 'summary_xunit_result.xml'), encoding='utf-8', mode='w+') as f:
             f.write(xml)

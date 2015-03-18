@@ -17,7 +17,7 @@ class TestProgram(object):
 
 
 class DefaultTestProgram(TestProgram):
-    def __init__(self, test_dict_conf, title='Reports', description='', dest='./results',
+    def __init__(self, test_dict_conf, title='Reports', description='', dest='results',
                  verbosity=1, show_runtime_descriptions=False):
         self.test_dict_conf = test_dict_conf
         self.title = title
