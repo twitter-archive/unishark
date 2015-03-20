@@ -1,5 +1,3 @@
-__author__ = 'Ying Ni <yni@twitter.com>'
-
 from unishark.runner import (out, err, BufferedTestResult, BufferedTestRunner)
 from unishark.reporter import (Reporter, HtmlReporter, XUnitReporter)
 from unishark.decorator import data_driven
