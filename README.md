@@ -2,9 +2,9 @@
   
 * <a href="#Overview">Overview</a>
 * <a href="#Prerequisites">Prerequisites</a>
-* <a href="#User Guide">User Guide</a>
-  - <a href="#Test Reports">Test Reports</a>
-  - <a href="#Customizing Test Suites">Customizing Test Suites</a>
+* <a href="#User_Guide">User Guide</a>
+  - <a href="#Test_Reports">Test Reports</a>
+  - <a href="#Customizing_Test_Suites">Customizing Test Suites</a>
   - <a href="#Utils">Utils</a>
   
 <a name="Overview"></a>
@@ -29,11 +29,11 @@ Language:
 * Jinja2>=2.7.2
 * MarkupSafe>=0.23
   
-<a name="User Guide"></a>
+<a name="User_Guide"></a>
 
 ## User Guide
   
-<a name="Test Reports"></a>
+<a name="Test_Reports"></a>
 
 ### Test Reports
   
@@ -97,7 +97,7 @@ if __name__ == '__main__':
     sys.exit(exit_code)
 ```
   
-<a name="Customizing Test Suites"></a>
+<a name="Customizing_Test_Suites"></a>
 
 ### Customizing Test Suites
   
