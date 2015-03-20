@@ -39,7 +39,7 @@ class RunnerTestCase(unittest.TestCase):
         self.suite = unittest.TestLoader().loadTestsFromTestCase(Mocking)
 
     def test_buffered_result(self):
-        result = unishark.BufferedTestRunner([]).run(self.suite)
+        result = unishark.BufferedTestRunner([], verbosity=0).run(self.suite)
         self.assertEqual(result.successes, 1)
         self.assertEqual(len(result.skipped), 1)
         self.assertEqual(len(result.failures), 1)
@@ -64,11 +64,11 @@ class RunnerTestCase(unittest.TestCase):
         self.assertEqual(success_res[0], '\n        This is doc string.\n        Great.\n        ')
         self.assertEqual(success_res[2], PASS)
         self.assertEqual(success_res[3], 'A stdout log.\n')
-        self.assertEqual(success_res[4], 'No Exceptions')
+        self.assertEqual(success_res[4], 'No Exception\n')
         skip_res = res_dict['test_runner.Mocking.test_skipped']
-        self.assertEqual(skip_res[0], 'No Method Doc')
+        self.assertEqual(skip_res[0], 'No Method Doc\n')
         self.assertEqual(skip_res[2], SKIPPED)
-        self.assertEqual(skip_res[3], '')
+        self.assertEqual(skip_res[3], 'No Log\n')
         self.assertEqual(skip_res[4], "Skipped: ''")
         error_res = res_dict['test_runner.Mocking.test_errors']
         self.assertEqual(error_res[2], ERROR)
@@ -82,7 +82,7 @@ class RunnerTestCase(unittest.TestCase):
         self.assertIn('AssertionError', exp_fail_res[4])
         unexp_success_res = res_dict['test_runner.Mocking.test_unexpected_successes']
         self.assertEqual(unexp_success_res[2], UNEXPECTED_PASS)
-        self.assertEqual(unexp_success_res[4], 'No Exceptions')
+        self.assertEqual(unexp_success_res[4], 'No Exception\n')
 
     @unittest.expectedFailure
     def test_init_with_non_iterable_reporters(self):

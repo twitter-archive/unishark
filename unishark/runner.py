@@ -44,13 +44,15 @@ class BufferedTestResult(unittest.TextTestResult):
         if cls_name not in self.results[mod_name]:
             self.results[mod_name][cls_name] = []
         test_name, test_doc = self._get_test_info(test)
+        output = output or 'No Log\n'
+        trace_back = trace_back or 'No Exception\n'
         self.results[mod_name][cls_name].append((test_name, test_doc, duration, status, output, trace_back))
 
     @staticmethod
     def _get_test_info(test):
         test_name = get_long_method_name(test)
         test_doc = getattr(test, '_testMethodDoc')
-        return test_name, test_doc or 'No Method Doc'
+        return test_name, test_doc or 'No Method Doc\n'
 
     def _exc_info_to_string(self, error, test):
         """Almost the same as its base class implementation, except eliminating the mirror output"""
@@ -80,7 +82,7 @@ class BufferedTestResult(unittest.TextTestResult):
         duration = time.time() - self.start_time
         super(BufferedTestResult, self).addSuccess(test)
         self.successes += 1
-        self._add_result(test, duration, PASS, _io_buffer.getvalue(), 'No Exceptions')
+        self._add_result(test, duration, PASS, _io_buffer.getvalue(), '')
 
     def addError(self, test, error):
         duration = time.time() - self.start_time
@@ -109,7 +111,7 @@ class BufferedTestResult(unittest.TextTestResult):
     def addUnexpectedSuccess(self, test):
         duration = time.time() - self.start_time
         super(BufferedTestResult, self).addUnexpectedSuccess(test)
-        self._add_result(test, duration, UNEXPECTED_PASS, _io_buffer.getvalue(), 'No Exceptions')
+        self._add_result(test, duration, UNEXPECTED_PASS, _io_buffer.getvalue(), '')
 
     def wasSuccessful(self):
         return len(self.failures) == len(self.errors) == len(self.unexpectedSuccesses) == 0

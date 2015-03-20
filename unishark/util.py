@@ -2,6 +2,7 @@ __author__ = 'Ying Ni <yni@twitter.com>'
 
 
 import inspect
+from os import sep
 
 
 class ContextManager(object):
@@ -22,7 +23,7 @@ contexts = ContextManager()
 
 
 def get_module_name(obj):
-    return inspect.getsourcefile(type(obj)).split('/')[-1][:-3]
+    return inspect.getsourcefile(type(obj)).split(sep)[-1][:-3]
 
 
 def get_long_class_name(obj):

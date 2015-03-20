@@ -9,10 +9,10 @@ log = logging.getLogger(__name__)
 
 
 class DefaultTestLoader:
-    def __init__(self):
+    def __init__(self, method_prefix='test'):
         self._name_tree = None
         self._test_loader = unittest.TestLoader()
-        self.method_prefix = 'test'
+        self.method_prefix = method_prefix
 
     def load_test_from_dict(self, dict_conf):
         suites_dict = dict()
