@@ -23,7 +23,8 @@ Extending existent unittest code with one or more unishark features is easy.
 ## Prerequisites
   
 Language:
-* Python 2.7.x, Python 3.x
+* Python>=2.7.6,<3
+* Python>=3.3
   
 3rd Parties:
 * Jinja2>=2.7.2

@@ -1,5 +1,3 @@
-__author__ = 'Ying Ni <yni@twitter.com>'
-
 from unishark import main, DefaultTestProgram, XUnitReporter
 import yaml
 import example.config as config
