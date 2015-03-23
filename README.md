@@ -1,4 +1,6 @@
-# unishark - another unittest extension
+# unishark [![Build Status](https://travis-ci.org/twitter/unishark.svg?branch=master)](https://travis-ci.org/twitter/unishark)
+
+Another unittest extension (that extends unitest2)
   
 * <a href="#Overview">Overview</a>
 * <a href="#Prerequisites">Prerequisites</a>
