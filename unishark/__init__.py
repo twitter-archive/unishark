@@ -1,4 +1,4 @@
-from unishark.runner import (out, err, BufferedTestResult, BufferedTestRunner)
+from unishark.runner import (out, BufferedTestResult, BufferedTestRunner)
 from unishark.reporter import (Reporter, HtmlReporter, XUnitReporter)
 from unishark.decorator import data_driven
 from unishark.main import main, TestProgram, DefaultTestProgram

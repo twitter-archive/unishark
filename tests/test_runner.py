@@ -2,6 +2,8 @@ import unittest
 import unishark
 from unishark.runner import PASS, SKIPPED, ERROR, FAIL, EXPECTED_FAIL, UNEXPECTED_PASS
 from tests import logger
+import time
+import threading
 
 
 class Mocking(unittest.TestCase):
@@ -31,6 +33,39 @@ class Mocking(unittest.TestCase):
     @unittest.expectedFailure
     def test_unexpected_successes(self):
         self.assertTrue(True)
+
+
+class MyTestClass1(unittest.TestCase):
+    def test_1(self):
+        for i in range(3):
+            logger.info('Here is log #%d of test_1' % i)
+            print('class1:test1:thread:%d' % threading.current_thread().ident)
+            self.assertEqual(1, 1)
+            time.sleep(1)
+
+    def test_2(self):
+        logger.info('Here is log of test_2')
+        print('class1:test2:thread:%d' % threading.current_thread().ident)
+        time.sleep(1)
+        self.assertEqual(2, 1)
+
+
+class MyTestClass2(unittest.TestCase):
+    @unishark.data_driven(left=list(range(3)))
+    @unishark.data_driven(right=list(range(3)))
+    def test_1(self, **param):
+        """Test cross-multiply data-driven"""
+        l = param['left']
+        r = param['right']
+        logger.info(str(l) + ' x ' + str(r) + ' = ' + str(l * r))
+        print('class2:test1:thread:%d' % threading.current_thread().ident)
+        time.sleep(1)
+
+    def test_3(self):
+        logger.info('Here is log of test_3')
+        print('class2:test3:thread:%d' % threading.current_thread().ident)
+        time.sleep(1)
+        self.assertEqual(3, 2)
 
 
 class RunnerTestCase(unittest.TestCase):
@@ -63,7 +98,7 @@ class RunnerTestCase(unittest.TestCase):
         success_res = res_dict['test_runner.Mocking.test_successes']
         self.assertEqual(success_res[0], '\n        This is doc string.\n        Great.\n        ')
         self.assertEqual(success_res[2], PASS)
-        self.assertEqual(success_res[3], 'A stdout log.\n')
+        self.assertEqual(success_res[3], 'No Log\n')
         self.assertEqual(success_res[4], 'No Exception\n')
         skip_res = res_dict['test_runner.Mocking.test_skipped']
         self.assertEqual(skip_res[0], 'No Method Doc\n')
@@ -83,6 +118,20 @@ class RunnerTestCase(unittest.TestCase):
         unexp_success_res = res_dict['test_runner.Mocking.test_unexpected_successes']
         self.assertEqual(unexp_success_res[2], UNEXPECTED_PASS)
         self.assertEqual(unexp_success_res[4], 'No Exception\n')
+
+    def test_buffered_result_when_multithreads(self):
+        loader = unittest.TestLoader()
+        suite1 = loader.loadTestsFromTestCase(MyTestClass1)
+        suite2 = loader.loadTestsFromTestCase(MyTestClass2)
+
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            f1 = executor.submit(unishark.BufferedTestRunner([], verbosity=0).run, suite1)
+            f2 = executor.submit(unishark.BufferedTestRunner([], verbosity=0).run, suite2)
+        r1 = f1.result()
+        r2 = f2.result()
+        print(r1.results)
+        print(r2.results)
 
     @unittest.expectedFailure
     def test_init_with_non_iterable_reporters(self):

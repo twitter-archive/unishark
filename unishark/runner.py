@@ -6,16 +6,77 @@ import traceback
 import unittest
 import time
 from unishark.util import (get_long_class_name, get_long_method_name, get_module_name)
+import threading
+from collections import deque
+from inspect import ismodule
 
-_io_buffer = None
+
+_str_io = None
 if sys.version_info[0] < 3:  # python 2.7
-    StringIO = __import__('StringIO')
-    _io_buffer = StringIO.StringIO()
+    _str_io = __import__('StringIO')
 else:
-    io = __import__('io')
-    _io_buffer = io.StringIO()
+    _str_io = __import__('io')
 
-out = err = _io_buffer
+if _str_io is None or not ismodule(_str_io):
+    raise ImportError
+
+
+def _make_buffer():
+    return _str_io.StringIO()
+
+
+class _PooledIOBuffer():
+    _lock = threading.RLock()
+
+    def __init__(self):
+        self.buff_queue = deque()
+        self.buff_queue.append(_make_buffer())
+        self.buff_dict = dict()
+
+    def _get_buff(self):
+        with _PooledIOBuffer._lock:
+            if not self.buff_queue:
+                return _make_buffer()
+            else:
+                return self.buff_queue.popleft()
+
+    def write(self, *args, **kwargs):
+        i = threading.current_thread().ident
+        if i not in self.buff_dict:
+            buff = self._get_buff()
+            self.buff_dict[i] = buff
+        self.buff_dict[i].write(*args, **kwargs)
+
+    def getvalue(self, *args, **kwargs):
+        i = threading.current_thread().ident
+        return self.buff_dict[i].getvalue(*args, **kwargs) if i in self.buff_dict else None
+
+    def flush(self, *args, **kwargs):
+        i = threading.current_thread().ident
+        if i in self.buff_dict:
+            self.buff_dict[i].flush(*args, **kwargs)
+
+    def seek(self, *args, **kwargs):
+        i = threading.current_thread().ident
+        if i in self.buff_dict:
+            self.buff_dict[i].seek(*args, **kwargs)
+
+    def truncate(self, *args, **kwargs):
+        i = threading.current_thread().ident
+        if i in self.buff_dict:
+            self.buff_dict[i].truncate(*args, **kwargs)
+
+    def free(self):
+        i = threading.current_thread().ident
+        if i in self.buff_dict:
+            buff = self.buff_dict.pop(threading.current_thread().ident)
+            buff.seek(0)
+            buff.truncate()
+            self.buff_queue.append(buff)
+
+
+_io_buffer = _PooledIOBuffer()
+out = _io_buffer
 
 PASS = 0
 SKIPPED = 1
@@ -26,10 +87,10 @@ UNEXPECTED_PASS = 5
 
 
 class BufferedTestResult(unittest.TextTestResult):
+    # TODO make this class thread-safe
     def __init__(self, stream, descriptions, verbosity):
         super(BufferedTestResult, self).__init__(stream, descriptions, verbosity)
-        self.buffer = True
-        self._stdout_buffer = self._stderr_buffer = _io_buffer
+        self.buffer = False
         # key = test class name, value = a list of results.
         # One result is a tuple like (test method name, method doc, duration, status, output, traceback)
         self.results = dict()
@@ -74,10 +135,8 @@ class BufferedTestResult(unittest.TextTestResult):
         self.start_time = time.time()
 
     def stopTest(self, test):
-        sys.stdout = self._original_stdout
-        sys.stderr = self._original_stderr
-        _io_buffer.seek(0)
-        _io_buffer.truncate()
+        self._mirrorOutput = False
+        _io_buffer.free()
 
     def addSuccess(self, test):
         duration = time.time() - self.start_time
@@ -120,7 +179,7 @@ class BufferedTestResult(unittest.TextTestResult):
 
 class BufferedTestRunner(unittest.TextTestRunner):
     def __init__(self, reporters, verbosity=1, descriptions=False):
-        super(BufferedTestRunner, self).__init__(buffer=True,
+        super(BufferedTestRunner, self).__init__(buffer=False,
                                                  verbosity=verbosity,
                                                  descriptions=descriptions,
                                                  resultclass=BufferedTestResult)
