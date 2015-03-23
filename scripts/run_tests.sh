@@ -1,3 +1,3 @@
 #!/bin/bash
 
-PYTHONPATH=. python tests/main.py
+PYTHONPATH=. coverage run --source=unishark tests/main.py
