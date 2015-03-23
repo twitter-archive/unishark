@@ -181,12 +181,14 @@ class MethodSummary(Summary):
 
 
 class HtmlReporter(Reporter):
-    def __init__(self, title='Reports', description='', dest='results'):
+    def __init__(self, title='Reports', description='', templates_path='templates', dest='results'):
         super(HtmlReporter, self).__init__()
         self.description = description
         self.dest = dest
         self._tests_sum = TestsSummary(title)
-        self.jinja_env = jinja2.Environment(loader=jinja2.PackageLoader(unishark.PACKAGE), autoescape=False)
+        self.jinja_env = jinja2.Environment(loader=jinja2.PackageLoader(unishark.PACKAGE,
+                                                                        package_path=templates_path),
+                                            autoescape=False)
 
         # Add converting newline to <br> filter
         @jinja2.evalcontextfilter
@@ -203,7 +205,7 @@ class HtmlReporter(Reporter):
         if not os.path.exists(self.dest):
             os.makedirs(self.dest)
 
-    def report(self, result):
+    def report(self, result, report_template='report.html'):
         self._make_output_dir()
         # Heading
         date_time = str(datetime.datetime.now())
@@ -224,7 +226,7 @@ class HtmlReporter(Reporter):
             return text
         self.jinja_env.filters['pre'] = pre
         # Generate report from template
-        template = self.jinja_env.get_template('report.html')
+        template = self.jinja_env.get_template(report_template)
         html = template.render(app=app,
                                version=version,
                                date_time=date_time,
@@ -235,12 +237,12 @@ class HtmlReporter(Reporter):
             f.write(html)
         self._tests_sum.suite_sum_list.append(suite_sum)
 
-    def collect(self):
+    def collect(self, overview_template='overview.html', index_template='index.html'):
         self._make_output_dir()
-        self._generate_overview()
-        self._generate_index()
+        self._generate_overview(overview_template)
+        self._generate_index(index_template)
 
-    def _generate_overview(self):
+    def _generate_overview(self, overview_template):
         # Overview heading
         date_time = str(datetime.datetime.now())
         app = unishark.PACKAGE
@@ -248,7 +250,7 @@ class HtmlReporter(Reporter):
         # Summary
         self._tests_sum.build()
         # Generate overview from template
-        template = self.jinja_env.get_template('overview.html')
+        template = self.jinja_env.get_template(overview_template)
         html = template.render(app=app,
                                version=version,
                                date_time=date_time,
@@ -257,26 +259,28 @@ class HtmlReporter(Reporter):
         with codecs.open(os.path.join(self.dest, 'overview.html'), encoding='utf-8', mode='w+') as f:
             f.write(html)
 
-    def _generate_index(self):
-        template = self.jinja_env.get_template('index.html')
+    def _generate_index(self, index_template):
+        template = self.jinja_env.get_template(index_template)
         html = template.render(tests_sum=self._tests_sum)
         with codecs.open(os.path.join(self.dest, 'index.html'), encoding='utf-8', mode='w+') as f:
             f.write(html)
 
 
 class XUnitReporter(Reporter):
-    def __init__(self, title='XUnit Reports', description='', dest='results'):
+    def __init__(self, title='XUnit Reports', description='', templates_path='templates', dest='results'):
         super(XUnitReporter, self).__init__()
         self.description = description
         self.dest = dest
         self._tests_sum = TestsSummary(title)
-        self.jinja_env = jinja2.Environment(loader=jinja2.PackageLoader(unishark.PACKAGE), autoescape=False)
+        self.jinja_env = jinja2.Environment(loader=jinja2.PackageLoader(unishark.PACKAGE,
+                                                                        package_path=templates_path),
+                                            autoescape=False)
 
     def _make_output_dir(self):
         if not os.path.exists(self.dest):
             os.makedirs(self.dest)
 
-    def report(self, result):
+    def report(self, result, report_template='junit_suite_result.xml'):
         self._make_output_dir()
         # Summary
         suite_sum = SuiteSummary(self.suite_name)
@@ -287,19 +291,19 @@ class XUnitReporter(Reporter):
                 for mth_sum in cls_sum.mth_sum_list:
                     mth_sum.name = mth_sum.name.split('.')[-1]
         # Generate report from single suite junit result template
-        template = self.jinja_env.get_template('junit_suite_result.xml')
+        template = self.jinja_env.get_template(report_template)
         xml = template.render(suite_sum=suite_sum)
         filename = os.path.join(self.dest, self.suite_name + '_xunit_result.xml')
         with codecs.open(filename, encoding='utf-8', mode='w+') as f:
             f.write(xml)
         self._tests_sum.suite_sum_list.append(suite_sum)
 
-    def collect(self):
+    def collect(self, summary_template='junit_suites_result.xml'):
         self._make_output_dir()
         # Summary
         self._tests_sum.build()
         # Generate test suites summary
-        template = self.jinja_env.get_template('junit_suites_result.xml')
+        template = self.jinja_env.get_template(summary_template)
         xml = template.render(tests_sum=self._tests_sum)
         with codecs.open(os.path.join(self.dest, 'summary_xunit_result.xml'), encoding='utf-8', mode='w+') as f:
             f.write(xml)
