@@ -1,6 +1,6 @@
-# unishark [![Build Status](https://travis-ci.org/twitter/unishark.svg?branch=master)](https://travis-ci.org/twitter/unishark)
-
-Another unittest extension (that extends unitest2)
+# unishark [![Build Status](https://travis-ci.org/twitter/unishark.svg?branch=master)](https://travis-ci.org/twitter/unishark) [![Coverage Status](https://coveralls.io/repos/twitter/unishark/badge.png?branch=master)](https://coveralls.io/r/twitter/unishark?branch=master)
+  
+A lightweight unittest extension (that extends unitest2)
   
 * <a href="#Overview">Overview</a>
 * <a href="#Prerequisites">Prerequisites</a>
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     unittest.main(testRunner=unishark.BufferedTestRunner([reporter]))
 ```
   
-<code>unishark.BufferedTestRunner</code> buffers <code>sys.stdout</code> and <code>sys.stderr</code> output (including exceptions information) during the running of a test case, and writes all buffered output to report files at the end of the tests. To let unishark capture the logging stream and write logs into reports, simply redirect the logging stream to <code>unishark.out</code>, e.g.,
+<code>unishark.BufferedTestRunner</code> can buffer logging stream during the running of a test case, and writes all buffered output to report files at the end of the tests. To let unishark capture the logging stream and write logs into reports, simply redirect the logging stream to <code>unishark.out</code>, e.g.,
 ```python
 formatter = logging.Formatter('%(levelname)s: %(message)s')
 handler = logging.StreamHandler(stream=unishark.out)
@@ -78,6 +78,8 @@ handlers:
     formatter: simple
     stream: ext://unishark.out
 ```
+  
+**NOTE**: unishark does NOT buffer stdout and stderr. So if you use <code>print('some message')</code> in a test case, the message will be output to stdout during the test running.
   
 **Advanced Usage**
   
@@ -153,7 +155,9 @@ suites:
         disable: True
 ```
   
-To run the customized test suites:
+You could also write the configuration directly in a <code>dict()</code>.
+  
+To run the customized test suites and generate reports, use <code>unishark.DefaultTestProgram</code>:
 ```python
 import unishark
 import yaml
@@ -166,8 +170,24 @@ if __name__ == '__main__':
     unishark.main(program)
 ```
   
-You could also write the configuration directly in a <code>dict()</code>.  
-Note that **suite names are reflected in the reports while groups are not**. Test cases are grouped by class then module in the reports in practice. **groups** config is simply for including/excluding a group of test cases by enabling/disabling the group.
+Or if you just like to load the test suites then run them with <code>unittest.TextTestRunner</code>:
+```python
+import unishark
+import yaml
+import unittest
+
+if __name__ == '__main__':
+    dict_conf = None
+    with open('your_yaml_config_file', 'r') as f:
+        dict_conf = yaml.load(f.read())  # use a 3rd party yaml parser, e.g., PyYAML
+    suites_dict = unishark.DefaultTestLoader().load_test_from_dict(dict_conf)
+    for suite_name, suite_content in suites_dict.items():
+        package_name = suite_content['package']
+        suite = suite_content['suite']
+        unittest.TextTestRunner.run(suite)
+```
+  
+**NOTE**: suite names are reflected in the reports while groups are not. Test cases are grouped by class then module in the reports. **groups** config is simply for conveniently including/excluding a group of test cases by enabling/disabling the group.
   
 <a name="Utils"></a>
 
@@ -227,4 +247,4 @@ Results:
 9 x 9 = 81
 ```
   
-For more examples, please see <code>tests/test_decorator.py</code> and <code>example/</code>.
+For more examples, please see <code>example/</code>.
