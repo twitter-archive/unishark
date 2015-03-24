@@ -9,7 +9,7 @@ setup(
     name=NAME,
     version=VERSION,
 
-    description='A lightweight unittest extension.',
+    description='A lightweight unittest extension that provides reports, suites config and other test utilities.',
     long_description='''unishark extends unittest (to be more accurate, unittest2) in the following ways:
   - Generating polished test reports in different formats such as HTML, XUnit, etc..
   - Organizing test suites with dictionary config (or yaml/json like config).
