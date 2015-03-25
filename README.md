@@ -132,7 +132,7 @@ suites:
   
 Notes of the configuration:
 * Name of a suite or a group could be anything you like.
-* **package**: A dotted package name implying the directory of your test .py files. The tests in one suite have to be in the same package. To collect tests in another package, define another suite.
+* **package**: A dotted path (relative to PYTHONPATH) indicating the python package where your test .py files locate. The tests in one suite have to be in the same package. To collect tests in another package, define another suite. However tests in one package can be divided into several suites.
 * **granularity**: One of 'module', 'class' and 'method'.
 * **modules**: A list of module names (test file names with .py trimmed). Only takes effect when granularity is 'module'.
 * **classes**: A list of dotted class names conforming to 'module.class'. Only takes effect when granularity is 'class'.
@@ -247,4 +247,4 @@ Results:
 9 x 9 = 81
 ```
   
-For more examples, please see <code>example/</code>.
+For more examples, please see <code>example/</code>. To run the examples, please read <code>example/read_me.txt</code> first.

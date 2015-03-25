@@ -47,7 +47,9 @@ class DefaultTestLoader:
         for suite_name, suite in suites_dict.items():
             if 'disable' in suite and suite['disable']:
                 continue
-            pkg_name = suite['package'] if 'package' in suite else None
+            pkg_name = None
+            if 'package' in suite and suite['package']:
+                pkg_name = suite['package']
             groups_dict = suite['groups']
             test_cases_names = []
             for group_key, group in groups_dict.items():
@@ -85,7 +87,7 @@ class DefaultTestLoader:
                     test_cases_names.extend(full_mth_names)
                 else:
                     raise ValueError('Granularity must be in %r.' % ['module', 'class', 'method'])
-            res_suites[suite_name] = {'package': pkg_name, 'test_case_names': set(test_cases_names)}
+            res_suites[suite_name] = {'package': pkg_name or 'None', 'test_case_names': set(test_cases_names)}
         log.info('Parsed test config successfully.')
         return res_suites
 

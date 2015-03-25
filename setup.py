@@ -3,7 +3,7 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 NAME = 'unishark'
-VERSION = __import__(NAME).VERSION
+VERSION = '0.1.1'
 
 setup(
     name=NAME,
@@ -11,9 +11,12 @@ setup(
 
     description='A lightweight unittest extension that provides reports, suites config and other test utilities.',
     long_description='''unishark extends unittest (to be more accurate, unittest2) in the following ways:
+
   - Generating polished test reports in different formats such as HTML, XUnit, etc..
   - Organizing test suites with dictionary config (or yaml/json like config).
   - Offering test utils such as data-driven decorator to accelerate tests writing.
+
+3rd party dependencies: Jinja2, MarkupSafe.
 Extending existent unittest code with one or more unishark features is easy.
 For more information please see README.md on the project home page on github.''',
 
