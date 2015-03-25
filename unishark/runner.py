@@ -116,7 +116,7 @@ class BufferedTestResult(unittest.TextTestResult):
             self.results[mod_name] = dict()
         if cls_name not in self.results[mod_name]:
             self.results[mod_name][cls_name] = []
-        test_name, test_doc = self._get_test_info(test)
+        test_name, test_doc = self.__class__._get_test_info(test)
         output = output or 'No Log\n'
         trace_back = trace_back or 'No Exception\n'
         self.results[mod_name][cls_name].append((test_name, test_doc, duration, status, output, trace_back))

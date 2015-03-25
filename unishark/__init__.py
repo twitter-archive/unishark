@@ -7,4 +7,4 @@ from unishark.util import ContextManager, contexts
 
 
 PACKAGE = __name__
-VERSION = '0.1.1'
+VERSION = '0.1.2'

@@ -3,13 +3,14 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 NAME = 'unishark'
-VERSION = '0.1.1'
+VERSION = '0.1.2'
 
 setup(
     name=NAME,
     version=VERSION,
 
-    description='A lightweight unittest extension that provides reports, suites config and other test utilities.',
+    description='A lightweight unittest extension providing Html/XUnit reports, '
+                'test suites config and data driven utility.',
     long_description='''unishark extends unittest (to be more accurate, unittest2) in the following ways:
 
   - Generating polished test reports in different formats such as HTML, XUnit, etc..
