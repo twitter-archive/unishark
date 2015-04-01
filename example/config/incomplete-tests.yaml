@@ -3,7 +3,6 @@ version: 1
 suites:
   suite_name_1:
     package: example
-    disable: False
     groups:
       group1:
         disable: False
@@ -18,11 +17,27 @@ suites:
         except_methods: [test_module3.MyTestClass5.test_11]
   suite_name_2:
     package: example
-    disable: False
     groups:
-      group3:
+      group1:
         disable: False
         granularity: method
         methods: [test_module3.MyTestClass6.test_13,
                   test_module3.MyTestClass7.test_15,
                   test_module3.MyTestClass8.test_17]
+
+reporters:
+  html:
+    class: unishark.HtmlReporter
+    kwargs:
+      title: Example Report
+      description: |
+        <Here is customized description>: {
+            this is an example report.
+        }
+      dest: logs
+  xunit:
+    class: unishark.XUnitReporter
+
+test:
+  suites: [suite_name_1, suite_name_2]
+  reporters: [html, xunit]

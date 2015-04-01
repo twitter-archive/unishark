@@ -16,6 +16,9 @@ import abc
 import unishark
 import sys
 import logging
+import concurrent.futures
+import time
+
 
 log = logging.getLogger(__name__)
 
@@ -29,30 +32,88 @@ class TestProgram(object):
 
 
 class DefaultTestProgram(TestProgram):
-    def __init__(self, test_dict_conf, title='Reports', description='', dest='results',
-                 verbosity=1, show_runtime_descriptions=False):
+    def __init__(self, test_dict_conf, verbosity=1, print_doc_str=False):
         self.test_dict_conf = test_dict_conf
-        self.title = title
-        self.description = description
-        self.dest = dest
         self.verbosity = verbosity
-        self.show_runtime_descriptions = show_runtime_descriptions
-        self.reporters = [unishark.HtmlReporter(title=self.title, description=self.description, dest=self.dest)]
+        self.print_doc_str = print_doc_str
+        self.reporters = self._make_reporters()
 
     def run(self):
+        test = self.test_dict_conf['test']
+        max_workers_on_suites = int(test['max_workers']) if 'max_workers' in test else 1
+        if max_workers_on_suites <= 1:
+            return self._run_suites_linearly()
+        else:
+            return self._run_suites_concurrently(max_workers_on_suites)
+
+    @staticmethod
+    def _get_class_from_name(long_cls_name):
+        parts = long_cls_name.split('.')
+        mod = __import__('.'.join(parts[:-1]))
+        cls = getattr(mod, parts[-1], None)
+        if cls is None:
+            raise ImportError
+        return cls
+
+    def _make_reporters(self):
+        created_reporters = []
+        test = self.test_dict_conf['test']
+        reporters = self.test_dict_conf['reporters']
+        if 'reporters' in test:
+            for name in test['reporters']:
+                reporter = reporters[name]
+                reporter_class = self.__class__._get_class_from_name(reporter['class'])
+                kwargs = reporter['kwargs'] if 'kwargs' in reporter else None
+                if kwargs and type(kwargs) is dict:
+                    created_reporters.append(reporter_class(**kwargs))
+                else:
+                    created_reporters.append(reporter_class())
+        return created_reporters
+
+    def _run_suites_linearly(self):
         exit_code = 0
         suites = unishark.DefaultTestLoader().load_test_from_dict(self.test_dict_conf)
         for suite_name, suite_content in suites.items():
             package_name = suite_content['package']
             suite = suite_content['suite']
+            max_workers = suite_content['max_workers']
             for reporter in self.reporters:
                 reporter.suite_name = suite_name
                 reporter.suite_description = 'Package: ' + package_name
-            result = unishark.BufferedTestRunner(self.reporters, verbosity=self.verbosity,
-                                                 descriptions=self.show_runtime_descriptions).run(suite)
+            result = unishark.BufferedTestRunner(self.reporters,
+                                                 verbosity=self.verbosity,
+                                                 descriptions=self.print_doc_str).run(suite, max_workers=max_workers)
             exit_code += 0 if result.wasSuccessful() else 1
         for reporter in self.reporters:
             reporter.collect()
+        return exit_code
+
+    def _run_suites_concurrently(self, max_workers_on_suites):
+        exit_code = 0
+        suites = unishark.DefaultTestLoader().load_test_from_dict(self.test_dict_conf)
+        start_time = time.time()
+        with concurrent.futures.ThreadPoolExecutor(max_workers_on_suites) as executor:
+            futures = []
+            for suite_name, suite_content in suites.items():
+                package_name = suite_content['package']
+                suite = suite_content['suite']
+                max_workers = suite_content['max_workers']
+                reporters = self._make_reporters()
+                for reporter, master_reporter in zip(reporters, self.reporters):
+                    reporter.master = master_reporter
+                    reporter.suite_name = suite_name
+                    reporter.suite_description = 'Package: ' + package_name
+                runner = unishark.BufferedTestRunner(reporters,
+                                                     verbosity=self.verbosity,
+                                                     descriptions=self.print_doc_str)
+                future = executor.submit(runner.run, suite, max_workers=max_workers)
+                futures.append(future)
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                exit_code += 0 if result.wasSuccessful() else 1
+        log.info('Actual Running Time: %.3fs' % (time.time() - start_time))
+        for master_reporter in self.reporters:
+            master_reporter.collect()
         return exit_code
 
 

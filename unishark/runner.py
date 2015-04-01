@@ -15,25 +15,31 @@
 import sys
 import traceback
 import unittest
+from unittest.signals import registerResult
 import time
 from unishark.util import (get_long_class_name, get_long_method_name, get_module_name)
 import threading
+import concurrent.futures
 from collections import deque
 from inspect import ismodule
+import warnings
+import logging
 
 
-_str_io = None
+log = logging.getLogger(__name__)
+
+_io = None
 if sys.version_info[0] < 3:  # python 2.7
-    _str_io = __import__('StringIO')
+    _io = __import__('StringIO')
 else:
-    _str_io = __import__('io')
+    _io = __import__('io')
 
-if _str_io is None or not ismodule(_str_io):
+if _io is None or not ismodule(_io):
     raise ImportError
 
 
 def _make_buffer():
-    return _str_io.StringIO()
+    return _io.StringIO()
 
 
 class _PooledIOBuffer():
@@ -98,7 +104,6 @@ UNEXPECTED_PASS = 5
 
 
 class BufferedTestResult(unittest.TextTestResult):
-    # TODO make this class thread-safe
     def __init__(self, stream, descriptions, verbosity):
         super(BufferedTestResult, self).__init__(stream, descriptions, verbosity)
         self.buffer = False
@@ -195,15 +200,139 @@ class BufferedTestRunner(unittest.TextTestRunner):
                                                  descriptions=descriptions,
                                                  resultclass=BufferedTestResult)
         self.reporters = reporters
-
-    def run(self, test):
-        start_time = time.time()
-        result = super(BufferedTestRunner, self).run(test)
-        result.sum_duration = time.time() - start_time
         from unishark.reporter import Reporter
         for reporter in self.reporters:
             if not isinstance(reporter, Reporter):
                 raise TypeError
+
+    def _before_run(self):
+        # Keep the same as lines 145-162 in unittest.TextTextRunner.run
+        result = self.resultclass(self.stream, self.descriptions, self.verbosity)
+        registerResult(result)
+        result.failfast = self.failfast
+        result.buffer = self.buffer
+        with warnings.catch_warnings():
+            warn = getattr(self, 'warnings', None)
+            if warn:
+                warnings.simplefilter(warn)
+                if warn in ['default', 'always']:
+                    warnings.filterwarnings('module',
+                                            category=DeprecationWarning,
+                                            message='Please use assert\w+ instead.')
+        return result
+
+    def _after_run(self, result):
+        # Almost the same as lines 175-213 in unittest.TextTextRunner.run,
+        # with small fix of counting unexpectedSuccesses into a FAILED run.
+        result.printErrors()
+        if hasattr(result, 'separator2'):
+            self.stream.writeln(result.separator2)
+        run = result.testsRun
+        self.stream.writeln("Ran %d test%s in %.3fs" %
+                            (run, run != 1 and "s" or "", result.sum_duration))
+        self.stream.writeln()
+
+        expected = unexpected = skipped = 0
+        try:
+            results = map(len, (result.expectedFailures,
+                                result.unexpectedSuccesses,
+                                result.skipped))
+        except AttributeError:
+            pass
+        else:
+            expected, unexpected, skipped = results
+
+        infos = []
+        if not result.wasSuccessful():
+            self.stream.write("FAILED")
+            failed, errored = len(result.failures), len(result.errors)
+            if failed:
+                infos.append("failures=%d" % failed)
+            if errored:
+                infos.append("errors=%d" % errored)
+            if unexpected:
+                infos.append("unexpected successes=%d" % unexpected)
+        else:
+            self.stream.write("OK")
+        if skipped:
+            infos.append("skipped=%d" % skipped)
+        if expected:
+            infos.append("expected failures=%d" % expected)
+        if infos:
+            self.stream.writeln(" (%s)" % (", ".join(infos),))
+        else:
+            self.stream.write("\n")
+
+    @staticmethod
+    def _is_suite(test):
+        try:
+            iter(test)
+        except TypeError:
+            return False
+        return True
+
+    @staticmethod
+    def _combine_results(result, results):
+        for r in results:
+            result.failures.extend(r.failures)
+            result.errors.extend(r.errors)
+            result.testsRun += r.testsRun
+            result.skipped.extend(r.skipped)
+            result.expectedFailures.extend(r.expectedFailures)
+            result.unexpectedSuccesses.extend(r.unexpectedSuccesses)
+            result.successes += r.successes
+            for mod_name, mod in r.results.items():
+                if mod_name not in result.results:
+                    result.results[mod_name] = dict()
+                for cls_name, tups in mod.items():
+                    if cls_name not in result.results[mod_name]:
+                        result.results[mod_name][cls_name] = []
+                    result.results[mod_name][cls_name].extend(tups)
+
+    def _group_test_cases_by_class(self, test, dic):
+        if not self.__class__._is_suite(test):
+            if test.__class__ not in dic:
+                dic[test.__class__] = []
+            dic[test.__class__].append(test)
+        else:
+            for t in test:
+                self._group_test_cases_by_class(t, dic)
+
+    def _regroup_test_cases(self, test):
+        dic = dict()
+        self._group_test_cases_by_class(test, dic)
+        log.debug('Test cases grouped by class: %r' % dic)
+        suite = unittest.TestSuite()
+        for _, cases in dic.items():
+            cls_suite = unittest.TestSuite()
+            cls_suite.addTests(cases)
+            suite.addTest(cls_suite)
+        return suite
+
+    def run(self, test, max_workers=1):
+        result = self._before_run()
+        start_time = time.time()
+        start_test_run = getattr(result, 'startTestRun', None)
+        if start_test_run is not None:
+            start_test_run()
+        try:
+            if max_workers <= 1 or not self.__class__._is_suite(test):
+                test(result)
+            else:
+                test = self._regroup_test_cases(test)
+                log.debug('Regrouped test: %r' % test)
+                results = [self._before_run() for _ in test]
+                with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
+                    for t, r in zip(test, results):
+                        executor.submit(t, r)
+                self.__class__._combine_results(result, results)
+        finally:
+            stop_test_run = getattr(result, 'stopTestRun', None)
+            if stop_test_run is not None:
+                stop_test_run()
+        result.sum_duration = time.time() - start_time
+        self._after_run(result)
+
         for reporter in self.reporters:
             reporter.report(result)
         return result

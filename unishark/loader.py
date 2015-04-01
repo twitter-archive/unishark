@@ -35,7 +35,8 @@ class DefaultTestLoader:
                 log.warning('Test suite %r is empty.' % suite_name)
             suites_dict[suite_name] = {
                 'package': package,
-                'suite': self._test_loader.loadTestsFromNames(test_case_names)
+                'suite': self._test_loader.loadTestsFromNames(test_case_names),
+                'max_workers': content['max_workers']
             }
             log.info('Created test suite %r successfully: loaded %d test(s) from package %r.'
                      % (suite_name, len(test_case_names), package))
@@ -43,10 +44,10 @@ class DefaultTestLoader:
 
     def _parse_tests_from_dict(self, dict_conf):
         res_suites = dict()
-        suites_dict = dict_conf['suites']
-        for suite_name, suite in suites_dict.items():
-            if 'disable' in suite and suite['disable']:
-                continue
+        test = dict_conf['test']
+        suites = dict_conf['suites']
+        for suite_name in test['suites']:
+            suite = suites[suite_name]
             pkg_name = None
             if 'package' in suite and suite['package']:
                 pkg_name = suite['package']
@@ -87,7 +88,12 @@ class DefaultTestLoader:
                     test_cases_names.extend(full_mth_names)
                 else:
                     raise ValueError('Granularity must be in %r.' % ['module', 'class', 'method'])
-            res_suites[suite_name] = {'package': pkg_name or 'None', 'test_case_names': set(test_cases_names)}
+            max_workers = int(suite['max_workers']) if 'max_workers' in suite else 1
+            res_suites[suite_name] = {
+                'package': pkg_name or 'None',
+                'test_case_names': set(test_cases_names),
+                'max_workers': max_workers
+            }
         log.info('Parsed test config successfully.')
         return res_suites
 

@@ -2,7 +2,7 @@ version: 1
 
 suites:
   suite_name_1:
-    disable: False
+    max_workers: 6
     package: example
     groups:
       group1:
@@ -14,7 +14,7 @@ suites:
         granularity: class
         classes: [test_module3.MyTestClass5, test_module3.MyTestClass6]
   suite_name_2:
-    disable: False
+    max_workers: 2
     package: example
     groups:
       group1:
@@ -22,3 +22,17 @@ suites:
         granularity: class
         classes: [test_module3.MyTestClass7,
                   test_module3.MyTestClass8]
+
+reporters:
+  html:
+    class: unishark.HtmlReporter
+    kwargs:
+      title: Example Report
+      dest: logs
+  xunit:
+    class: unishark.XUnitReporter
+
+test:
+  suites: [suite_name_1, suite_name_2]
+  max_workers: 2
+  reporters: [html, xunit]

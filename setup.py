@@ -3,7 +3,7 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 NAME = 'unishark'
-VERSION = '0.1.2'
+VERSION = '0.2.0'
 
 setup(
     name=NAME,
