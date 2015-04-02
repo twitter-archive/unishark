@@ -42,7 +42,7 @@ def _make_buffer():
     return _io.StringIO()
 
 
-class _PooledIOBuffer():
+class _PooledIOBuffer(object):
     _lock = threading.RLock()
 
     def __init__(self):
@@ -113,6 +113,8 @@ class BufferedTestResult(unittest.TextTestResult):
         self.start_time = 0.0
         self.sum_duration = 0.0
         self.successes = 0
+        self.name = 'test'
+        self.descriptions = ''
 
     def _add_result(self, test, duration, status, output, trace_back):
         mod_name = get_module_name(test)
@@ -194,12 +196,15 @@ class BufferedTestResult(unittest.TextTestResult):
 
 
 class BufferedTestRunner(unittest.TextTestRunner):
-    def __init__(self, reporters, verbosity=1, descriptions=False):
+    def __init__(self, reporters=None, verbosity=1, descriptions=False):
         super(BufferedTestRunner, self).__init__(buffer=False,
                                                  verbosity=verbosity,
                                                  descriptions=descriptions,
                                                  resultclass=BufferedTestResult)
-        self.reporters = reporters
+        if reporters:
+            self.reporters = reporters
+        else:
+            self.reporters = []
         from unishark.reporter import Reporter
         for reporter in self.reporters:
             if not isinstance(reporter, Reporter):
@@ -309,8 +314,10 @@ class BufferedTestRunner(unittest.TextTestRunner):
             suite.addTest(cls_suite)
         return suite
 
-    def run(self, test, max_workers=1):
+    def run(self, test, name='test', description='', max_workers=1):
         result = self._before_run()
+        result.name = name
+        result.description = description
         start_time = time.time()
         start_test_run = getattr(result, 'startTestRun', None)
         if start_test_run is not None:

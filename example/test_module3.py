@@ -65,5 +65,7 @@ class MyTestClass8(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
+    result = unishark.BufferedTestRunner().run(suite, name='test_module2', max_workers=2)
     reporter = unishark.HtmlReporter(dest='log')
-    unittest.main(testRunner=unishark.BufferedTestRunner([reporter]))
+    reporter.report(result)

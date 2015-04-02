@@ -29,12 +29,12 @@ reporters:
   html:
     class: unishark.HtmlReporter
     kwargs:
-      title: Example Report
-      description: |
+      dest: logs
+      overview_title: 'Example Report'
+      overview_description: |
         <Here is customized description>: {
             this is an example report.
         }
-      dest: logs
   xunit:
     class: unishark.XUnitReporter
 

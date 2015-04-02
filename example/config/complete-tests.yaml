@@ -27,10 +27,13 @@ reporters:
   html:
     class: unishark.HtmlReporter
     kwargs:
-      title: Example Report
       dest: logs
+      overview_title: 'Example Report'
+      overview_description: 'This is an example report'
   xunit:
     class: unishark.XUnitReporter
+    kwargs:
+      summary_title: 'Example Report'
 
 test:
   suites: [suite_name_1, suite_name_2]

@@ -32,17 +32,17 @@ class TestProgram(object):
 
 
 class DefaultTestProgram(TestProgram):
-    def __init__(self, test_dict_conf, verbosity=1, print_doc_str=False):
+    def __init__(self, test_dict_conf, verbosity=1, descriptions=False):
         self.test_dict_conf = test_dict_conf
         self.verbosity = verbosity
-        self.print_doc_str = print_doc_str
+        self.descriptions = descriptions
         self.reporters = self._make_reporters()
 
     def run(self):
         test = self.test_dict_conf['test']
         max_workers_on_suites = int(test['max_workers']) if 'max_workers' in test else 1
         if max_workers_on_suites <= 1:
-            return self._run_suites_linearly()
+            return self._run_suites_sequentially()
         else:
             return self._run_suites_concurrently(max_workers_on_suites)
 
@@ -70,19 +70,17 @@ class DefaultTestProgram(TestProgram):
                     created_reporters.append(reporter_class())
         return created_reporters
 
-    def _run_suites_linearly(self):
+    def _run_suites_sequentially(self):
         exit_code = 0
         suites = unishark.DefaultTestLoader().load_test_from_dict(self.test_dict_conf)
+        runner = unishark.BufferedTestRunner(reporters=self.reporters,
+                                             verbosity=self.verbosity,
+                                             descriptions=self.descriptions)
         for suite_name, suite_content in suites.items():
             package_name = suite_content['package']
             suite = suite_content['suite']
             max_workers = suite_content['max_workers']
-            for reporter in self.reporters:
-                reporter.suite_name = suite_name
-                reporter.suite_description = 'Package: ' + package_name
-            result = unishark.BufferedTestRunner(self.reporters,
-                                                 verbosity=self.verbosity,
-                                                 descriptions=self.print_doc_str).run(suite, max_workers=max_workers)
+            result = runner.run(suite, name=suite_name, description='Package: ' + package_name, max_workers=max_workers)
             exit_code += 0 if result.wasSuccessful() else 1
         for reporter in self.reporters:
             reporter.collect()
@@ -98,22 +96,22 @@ class DefaultTestProgram(TestProgram):
                 package_name = suite_content['package']
                 suite = suite_content['suite']
                 max_workers = suite_content['max_workers']
-                reporters = self._make_reporters()
-                for reporter, master_reporter in zip(reporters, self.reporters):
-                    reporter.master = master_reporter
-                    reporter.suite_name = suite_name
-                    reporter.suite_description = 'Package: ' + package_name
-                runner = unishark.BufferedTestRunner(reporters,
+                runner = unishark.BufferedTestRunner(reporters=self.reporters,
                                                      verbosity=self.verbosity,
-                                                     descriptions=self.print_doc_str)
-                future = executor.submit(runner.run, suite, max_workers=max_workers)
+                                                     descriptions=self.descriptions)
+                future = executor.submit(runner.run, suite,
+                                         name=suite_name,
+                                         description='Package: ' + package_name,
+                                         max_workers=max_workers)
                 futures.append(future)
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
                 exit_code += 0 if result.wasSuccessful() else 1
-        log.info('Actual Running Time: %.3fs' % (time.time() - start_time))
-        for master_reporter in self.reporters:
-            master_reporter.collect()
+        actual_duration = time.time() - start_time
+        log.info('Actual total time taken: %.3fs' % actual_duration)
+        for reporter in self.reporters:
+            reporter.set_actual_duration(actual_duration)
+            reporter.collect()
         return exit_code
 
 

@@ -20,6 +20,7 @@ import datetime
 import abc
 import unishark
 from unishark.runner import (PASS, SKIPPED, ERROR, FAIL, EXPECTED_FAIL, UNEXPECTED_PASS)
+import threading
 
 _status_to_str = {
     PASS: 'Passed',
@@ -36,24 +37,10 @@ class Reporter(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self):
-        self._suite_name = 'suite'
-        self._suite_description = ''
+        self._actual_duration = None
 
-    @property
-    def suite_name(self):
-        return self._suite_name
-
-    @suite_name.setter
-    def suite_name(self, suite_name):
-        self._suite_name = suite_name
-
-    @property
-    def suite_description(self):
-        return self._suite_description
-
-    @suite_description.setter
-    def suite_description(self, suite_description):
-        self._suite_description = suite_description
+    def set_actual_duration(self, duration):
+        self._actual_duration = duration
 
     @abc.abstractmethod
     def report(self, result):
@@ -68,6 +55,7 @@ class Summary(object):
     """Base class of representation classes"""
     def __init__(self, name):
         self.name = name
+        self.description = ''
         self.duration = 0.0
         self.run = 0
         self.passed = 0
@@ -95,9 +83,11 @@ class TestsSummary(Summary):
         super(TestsSummary, self).__init__(name)
         self.suite_sum_list = []
 
-    def build(self):
+    def build(self, actual_duration=None):
         if self.suite_sum_list:
             self.duration = sum(map(lambda s: s.duration, self.suite_sum_list))
+            if actual_duration:
+                self.duration = actual_duration
             self.run = sum(map(lambda s: s.run, self.suite_sum_list))
             self.passed = sum(map(lambda s: s.passed, self.suite_sum_list))
             self.skipped = sum(map(lambda s: s.skipped, self.suite_sum_list))
@@ -115,6 +105,7 @@ class SuiteSummary(Summary):
 
     def build(self, result):
         # Suite summary
+        self.description = result.description
         self.duration = result.sum_duration
         self.run = result.testsRun
         self.passed = result.successes + len(result.expectedFailures)
@@ -186,31 +177,31 @@ class MethodSummary(Summary):
             or (status == FAIL or status == UNEXPECTED_PASS) and 'fail' \
             or status == SKIPPED and 'skipped' \
             or 'error'
-        self.doc = doc
+        self.description = doc
         self.output = output
         self.trace_back = trace_back
 
 
 class HtmlReporter(Reporter):
-    def __init__(self, title='Reports',
-                 description='',
-                 dest='results',
+    _lock = threading.RLock()
+
+    def __init__(self, dest='results',
+                 overview_title='Reports',
+                 overview_description='',
                  templates_path='templates',
                  report_template=None,
                  overview_template=None,
-                 index_template=None,
-                 master=None):
+                 index_template=None):
         super(HtmlReporter, self).__init__()
-        self.description = description
         self.dest = dest
-        self._tests_sum = TestsSummary(title)
+        self._tests_sum = TestsSummary(overview_title)
+        self._tests_sum.description = overview_description
         self.jinja_env = jinja2.Environment(loader=jinja2.PackageLoader(unishark.PACKAGE,
                                                                         package_path=templates_path),
                                             autoescape=False)
         self.report_template = report_template if report_template else 'report.html'
         self.overview_template = overview_template if overview_template else 'overview.html'
         self.index_template = index_template if index_template else 'index.html'
-        self.master = master
 
         # Add converting newline to <br> filter
         @jinja2.evalcontextfilter
@@ -223,20 +214,6 @@ class HtmlReporter(Reporter):
             return result
         self.jinja_env.filters['nl2br'] = nl2br
 
-    def _make_output_dir(self):
-        if not os.path.exists(self.dest):
-            os.makedirs(self.dest)
-
-    def report(self, result):
-        self._make_output_dir()
-        # Heading
-        date_time = str(datetime.datetime.now())
-        app = unishark.PACKAGE
-        version = unishark.VERSION
-        # Summary
-        suite_sum = SuiteSummary(self.suite_name)
-        suite_sum.build(result)
-
         # Add <pre> tag wrapper filter
         @jinja2.evalcontextfilter
         def pre(eval_ctx, value):
@@ -247,20 +224,32 @@ class HtmlReporter(Reporter):
                 text = jinja2.Markup(text)
             return text
         self.jinja_env.filters['pre'] = pre
+
+    def _make_output_dir(self):
+        with HtmlReporter._lock:
+            if not os.path.exists(self.dest):
+                os.makedirs(self.dest)
+
+    def report(self, result):
+        self._make_output_dir()
+        # Heading
+        date_time = str(datetime.datetime.now())
+        app = unishark.PACKAGE
+        version = unishark.VERSION
+        # Summary
+        suite_sum = SuiteSummary(result.name)
+        suite_sum.build(result)
         # Generate report from template
         template = self.jinja_env.get_template(self.report_template)
         html = template.render(app=app,
                                version=version,
                                date_time=date_time,
-                               description=self._suite_description,
                                suite_sum=suite_sum)
-        filename = os.path.join(self.dest, self.suite_name + '_result.html')
+        filename = os.path.join(self.dest, suite_sum.name + '_result.html')
         with codecs.open(filename, encoding='utf-8', mode='w+') as f:
             f.write(html)
-        if self.master and isinstance(self.master, HtmlReporter):
-            getattr(self.master, '_tests_sum').suite_sum_list.append(suite_sum)
-        else:
-            self._tests_sum.suite_sum_list.append(suite_sum)
+
+        self._tests_sum.suite_sum_list.append(suite_sum)
 
     def collect(self):
         self._make_output_dir()
@@ -273,13 +262,12 @@ class HtmlReporter(Reporter):
         app = unishark.PACKAGE
         version = unishark.VERSION
         # Summary
-        self._tests_sum.build()
+        self._tests_sum.build(actual_duration=self._actual_duration)
         # Generate overview from template
         template = self.jinja_env.get_template(self.overview_template)
         html = template.render(app=app,
                                version=version,
                                date_time=date_time,
-                               description=self.description,
                                tests_sum=self._tests_sum)
         with codecs.open(os.path.join(self.dest, 'overview.html'), encoding='utf-8', mode='w+') as f:
             f.write(html)
@@ -292,32 +280,31 @@ class HtmlReporter(Reporter):
 
 
 class XUnitReporter(Reporter):
-    def __init__(self, title='XUnit Reports',
-                 description='',
-                 dest='results',
+    _lock = threading.RLock()
+
+    def __init__(self, dest='results',
+                 summary_title='XUnit Reports',
                  templates_path='templates',
                  report_template=None,
-                 summary_template=None,
-                 master=None):
+                 summary_template=None):
         super(XUnitReporter, self).__init__()
-        self.description = description
         self.dest = dest
-        self._tests_sum = TestsSummary(title)
+        self._tests_sum = TestsSummary(summary_title)
         self.jinja_env = jinja2.Environment(loader=jinja2.PackageLoader(unishark.PACKAGE,
                                                                         package_path=templates_path),
                                             autoescape=False)
         self.report_template = report_template if report_template else 'junit_suite_result.xml'
         self.summary_template = summary_template if summary_template else 'junit_suites_result.xml'
-        self.master = master
 
     def _make_output_dir(self):
-        if not os.path.exists(self.dest):
-            os.makedirs(self.dest)
+        with XUnitReporter._lock:
+            if not os.path.exists(self.dest):
+                os.makedirs(self.dest)
 
     def report(self, result):
         self._make_output_dir()
         # Summary
-        suite_sum = SuiteSummary(self.suite_name)
+        suite_sum = SuiteSummary(result.name)
         suite_sum.build(result)
         # Get short method names
         for mod_sum in suite_sum.mod_sum_list:
@@ -327,18 +314,16 @@ class XUnitReporter(Reporter):
         # Generate report from single suite junit result template
         template = self.jinja_env.get_template(self.report_template)
         xml = template.render(suite_sum=suite_sum)
-        filename = os.path.join(self.dest, self.suite_name + '_xunit_result.xml')
+        filename = os.path.join(self.dest, suite_sum.name + '_xunit_result.xml')
         with codecs.open(filename, encoding='utf-8', mode='w+') as f:
             f.write(xml)
-        if self.master and isinstance(self.master, XUnitReporter):
-            getattr(self.master, '_tests_sum').suite_sum_list.append(suite_sum)
-        else:
-            self._tests_sum.suite_sum_list.append(suite_sum)
+
+        self._tests_sum.suite_sum_list.append(suite_sum)
 
     def collect(self):
         self._make_output_dir()
         # Summary
-        self._tests_sum.build()
+        self._tests_sum.build(actual_duration=self._actual_duration)
         # Generate test suites summary
         template = self.jinja_env.get_template(self.summary_template)
         xml = template.render(tests_sum=self._tests_sum)

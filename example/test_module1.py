@@ -47,4 +47,4 @@ class MyTestClass2(unittest.TestCase):
 
 if __name__ == '__main__':
     reporter = unishark.HtmlReporter(dest='log')
-    unittest.main(testRunner=unishark.BufferedTestRunner([reporter]))
+    unittest.main(testRunner=unishark.BufferedTestRunner(reporters=[reporter]))
