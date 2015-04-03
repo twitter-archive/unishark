@@ -188,7 +188,7 @@ class HtmlReporter(Reporter):
     def __init__(self, dest='results',
                  overview_title='Reports',
                  overview_description='',
-                 templates_path='templates',
+                 templates_path=None,
                  report_template=None,
                  overview_template=None,
                  index_template=None):
@@ -196,12 +196,17 @@ class HtmlReporter(Reporter):
         self.dest = dest
         self._tests_sum = TestsSummary(overview_title)
         self._tests_sum.description = overview_description
-        self.jinja_env = jinja2.Environment(loader=jinja2.PackageLoader(unishark.PACKAGE,
-                                                                        package_path=templates_path),
-                                            autoescape=False)
-        self.report_template = report_template if report_template else 'report.html'
-        self.overview_template = overview_template if overview_template else 'overview.html'
-        self.index_template = index_template if index_template else 'index.html'
+        if templates_path and report_template and overview_template and index_template:
+            loader = jinja2.FileSystemLoader(templates_path, encoding='utf-8')
+            self.report_template = report_template
+            self.overview_template = overview_template
+            self.index_template = index_template
+        else:
+            loader = jinja2.PackageLoader(unishark.PACKAGE, package_path='templates', encoding='utf-8')
+            self.report_template = 'report.html'
+            self.overview_template = 'overview.html'
+            self.index_template = 'index.html'
+        self.jinja_env = jinja2.Environment(loader=loader, autoescape=False)
 
         # Add converting newline to <br> filter
         @jinja2.evalcontextfilter
@@ -282,17 +287,21 @@ class HtmlReporter(Reporter):
 class XUnitReporter(Reporter):
     def __init__(self, dest='results',
                  summary_title='XUnit Reports',
-                 templates_path='templates',
+                 templates_path=None,
                  report_template=None,
                  summary_template=None):
         super(XUnitReporter, self).__init__()
         self.dest = dest
         self._tests_sum = TestsSummary(summary_title)
-        self.jinja_env = jinja2.Environment(loader=jinja2.PackageLoader(unishark.PACKAGE,
-                                                                        package_path=templates_path),
-                                            autoescape=False)
-        self.report_template = report_template if report_template else 'junit_suite_result.xml'
-        self.summary_template = summary_template if summary_template else 'junit_suites_result.xml'
+        if templates_path and report_template and summary_template:
+            loader = jinja2.FileSystemLoader(templates_path, encoding='utf-8')
+            self.report_template = report_template
+            self.summary_template = summary_template
+        else:
+            loader = jinja2.PackageLoader(unishark.PACKAGE, package_path='templates', encoding='utf-8')
+            self.report_template = 'junit_suite_result.xml'
+            self.summary_template = 'junit_suites_result.xml'
+        self.jinja_env = jinja2.Environment(loader=loader, autoescape=False)
 
     def _make_output_dir(self):
         with Reporter.lock:
