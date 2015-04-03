@@ -22,15 +22,15 @@ class DecoratorTestCase(unittest.TestCase):
         mock_test('mock')
 
     def test_data_driven_cross_multiply(self):
-        @unishark.data_driven(left=list(range(1, 4)), i=list(range(3)))
-        @unishark.data_driven(right=list(range(1, 4)), j=list(range(3)))
+        @unishark.data_driven(left=list(range(3)), i=list(range(3)))
+        @unishark.data_driven(right=list(range(3)), j=list(range(3)))
         def mock_test(res, **param):
             n = param['left'] * param['right']
             i = param['i']
             j = param['j']
             self.assertEqual(n, res[i*3+j])
 
-        mock_test([1, 2, 3, 2, 4, 6, 3, 6, 9])
+        mock_test([0, 0, 0, 0, 1, 2, 0, 2, 4])
 
     @unittest.expectedFailure
     def test_data_driven_invalid_input_1(self):

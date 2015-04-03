@@ -44,8 +44,8 @@ class MyTestClass7(unittest.TestCase):
 
 
 class MyTestClass8(unittest.TestCase):
-    @unishark.data_driven(left=list(range(1, 10)))
-    @unishark.data_driven(right=list(range(1, 10)))
+    @unishark.data_driven(left=list(range(9)))
+    @unishark.data_driven(right=list(range(9)))
     def test_17(self, **param):
         """Test cross-multiply data-driven"""
         l = param['left']

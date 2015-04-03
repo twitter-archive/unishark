@@ -48,7 +48,7 @@ For more information please see README.md on the project home page on github.'''
     keywords='unittest extension test reports config utility',
 
     # See https://packaging.python.org/en/latest/requirements.html
-    install_requires=['Jinja2>=2.7.2', 'MarkupSafe>=0.23'],
+    install_requires=['Jinja2>=2.7.2', 'MarkupSafe>=0.23', 'futures>=2.2.0'],
 
     extras_require={
         'test': ['coveralls'],

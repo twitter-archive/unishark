@@ -11,7 +11,6 @@ log = logging.getLogger(__name__)
 
 
 class MyTestClass3(unittest.TestCase):
-
     def test_5(self):
         """Here is test_5's doc str"""
         log.error('This is a case having an error that is not AssertionError. '
@@ -25,7 +24,7 @@ class MyTestClass3(unittest.TestCase):
         sleep(1)
         self.assertEqual(1, 1)
 
-    @unittest.skip('Reason of skipping test_7')
+    @unittest.skip("Reason of skipping 'test_7'")
     def test_7(self):
         """Here is test_7's doc str"""
         sleep(3)
@@ -33,11 +32,12 @@ class MyTestClass3(unittest.TestCase):
 
 
 class MyTestClass4(unittest.TestCase):
+    @unittest.expectedFailure
     def test_8(self):
         """Here is test_8's doc str"""
-        log.debug('There is an error')
+        log.error('This is unexpected to be passed.')
         sleep(1)
-        raise TypeError
+        self.assertEqual(1, 1)
 
     def test_9(self):
         """Here is test_9's doc str"""
@@ -45,12 +45,13 @@ class MyTestClass4(unittest.TestCase):
         sleep(2)
         self.assertEqual(1, 2)
 
+    @unittest.expectedFailure
     def test_10(self):
         """Here is test_10's doc str"""
-        log.info('Here is test_10 INFO log')
+        log.info('This is expected to be failed.')
         sleep(1)
         log.debug('Here is test_10 DEBUG log')
-        self.assertEqual(1, 1)
+        raise ValueError
 
 
 if __name__ == '__main__':

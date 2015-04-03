@@ -9,7 +9,7 @@ handlers:
     class: logging.StreamHandler
     formatter: simple
     stream: ext://sys.stdout
-  html:
+  myhandler:
     class: logging.StreamHandler
     formatter: simple
     stream: ext://unishark.out
@@ -21,7 +21,7 @@ loggers:
     propagate: False
   example:
     level: DEBUG
-    handlers: [html]
+    handlers: [myhandler]
     propagate: False
 
 root:

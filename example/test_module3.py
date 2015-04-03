@@ -54,14 +54,14 @@ class MyTestClass7(unittest.TestCase):
 
 
 class MyTestClass8(unittest.TestCase):
-    @unishark.data_driven(left=list(range(1, 10)))
-    @unishark.data_driven(right=list(range(1, 10)))
+    @unishark.data_driven(left=list(range(9)))
+    @unishark.data_driven(right=list(range(9)))
     def test_17(self, **param):
         """Test cross-multiply data-driven"""
         l = param['left']
         r = param['right']
         sleep(0.1)
-        log.info(str(l) + ' x ' + str(r) + ' = ' + str(l * r))
+        log.info('%d x %d = %d' % (l, r, l * r))
 
 
 if __name__ == '__main__':

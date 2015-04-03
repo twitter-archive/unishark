@@ -14,7 +14,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -24,6 +23,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         suite_dict = self.loader.load_test_from_dict(dict_conf)
@@ -39,7 +41,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -49,6 +50,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -57,7 +61,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -68,6 +71,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         suite_dict = self.loader.load_test_from_dict(dict_conf)
@@ -83,7 +89,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -94,6 +99,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -103,7 +111,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -114,6 +121,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -122,7 +132,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -133,6 +142,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         suite_dict = self.loader.load_test_from_dict(dict_conf)
@@ -149,7 +161,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -160,6 +171,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -169,7 +183,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -189,7 +202,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -200,6 +212,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -209,7 +224,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -220,6 +234,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -229,7 +246,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -239,6 +255,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -247,7 +266,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -257,6 +275,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         suite_dict = self.loader.load_test_from_dict(dict_conf)
@@ -272,7 +293,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -282,6 +302,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -290,7 +313,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -300,6 +322,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         suite_dict = self.loader.load_test_from_dict(dict_conf)
@@ -310,7 +335,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -322,6 +346,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         suite_dict = self.loader.load_test_from_dict(dict_conf)
@@ -336,7 +363,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -348,6 +374,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -357,7 +386,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -369,6 +397,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -378,7 +409,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -390,6 +420,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -399,7 +432,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -410,6 +442,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -419,7 +454,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -429,6 +463,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -437,7 +474,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -447,6 +483,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         suite_dict = self.loader.load_test_from_dict(dict_conf)
@@ -458,7 +497,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -468,6 +506,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -477,7 +518,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -487,6 +527,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -496,7 +539,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -506,6 +548,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -515,7 +560,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -525,6 +569,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -534,7 +581,6 @@ class LoaderTestCase(unittest.TestCase):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
-                    'disable': False,
                     'package': 'tests.mock1',
                     'groups': {
                         'g1': {
@@ -544,6 +590,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         self.loader.load_test_from_dict(dict_conf)
@@ -577,6 +626,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1', 'my_suite_2']
             }
         }
         suite_dict = self.loader.load_test_from_dict(dict_conf)
@@ -593,7 +645,7 @@ class LoaderTestCase(unittest.TestCase):
         logger.info(suite_dict['my_suite_2']['suite'])
         self.assertEqual(suite_dict['my_suite_2']['suite'].countTestCases(), exp_suite2.countTestCases())
 
-    def test_disable_suite_and_group(self):
+    def test_exclude_suite_and_group(self):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
@@ -614,7 +666,6 @@ class LoaderTestCase(unittest.TestCase):
                     }
                 },
                 'my_suite_2': {
-                    'disable': True,
                     'package': 'tests.mock2',
                     'groups': {
                         'g1': {
@@ -624,6 +675,9 @@ class LoaderTestCase(unittest.TestCase):
                         }
                     }
                 }
+            },
+            'test': {
+                'suites': ['my_suite_1']
             }
         }
         suite_dict = self.loader.load_test_from_dict(dict_conf)
@@ -633,7 +687,50 @@ class LoaderTestCase(unittest.TestCase):
         logger.info(suite_dict['my_suite_1']['suite'])
         self.assertEqual(suite_dict['my_suite_1']['suite'].countTestCases(), exp_suite.countTestCases())
 
-    def test_empty_suite(self):
+    def test_empty_suite_1(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'package': 'tests.mock1',
+                    'groups': {
+                        'g1': {
+                            'disable': False,
+                            'granularity': 'class',
+                            'classes': ['test_module2.MyTestClass3']
+                        }
+                    }
+                }
+            },
+            'test': {
+                'suites': []
+            }
+        }
+        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        self.assertDictEqual(suite_dict, {})
+
+    def test_empty_suite_2(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'package': 'tests.mock1',
+                    'groups': {
+                        'g1': {
+                            'disable': True,
+                            'granularity': 'class',
+                            'classes': ['test_module2.MyTestClass3']
+                        }
+                    }
+                }
+            },
+            'test': {
+                'suites': ['my_suite_1']
+            }
+        }
+        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        self.assertEqual(suite_dict['my_suite_1']['suite'].countTestCases(), 0)
+
+    @unittest.expectedFailure
+    def test_missing_keyword_test(self):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
@@ -648,8 +745,29 @@ class LoaderTestCase(unittest.TestCase):
                 }
             }
         }
-        suite_dict = self.loader.load_test_from_dict(dict_conf)
-        self.assertEqual(suite_dict['my_suite_1']['suite'].countTestCases(), 0)
+        self.loader.load_test_from_dict(dict_conf)
+
+    @unittest.expectedFailure
+    def test_missing_keyword_suites(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'package': 'tests.mock1',
+                    'groups': {
+                        'g1': {
+                            'disable': True,
+                            'granularity': 'class',
+                            'classes': ['test_module2.MyTestClass3']
+                        }
+                    }
+                }
+            },
+            'test': {
+                'reporters': ['html', 'xunit'],
+                'max_workers': 10
+            }
+        }
+        self.loader.load_test_from_dict(dict_conf)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
