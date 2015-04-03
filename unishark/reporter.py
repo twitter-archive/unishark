@@ -36,6 +36,8 @@ class Reporter(object):
     """Base class of all reporter classes"""
     __metaclass__ = abc.ABCMeta
 
+    lock = threading.RLock()
+
     def __init__(self):
         self._actual_duration = None
 
@@ -183,8 +185,6 @@ class MethodSummary(Summary):
 
 
 class HtmlReporter(Reporter):
-    _lock = threading.RLock()
-
     def __init__(self, dest='results',
                  overview_title='Reports',
                  overview_description='',
@@ -226,7 +226,7 @@ class HtmlReporter(Reporter):
         self.jinja_env.filters['pre'] = pre
 
     def _make_output_dir(self):
-        with HtmlReporter._lock:
+        with Reporter.lock:
             if not os.path.exists(self.dest):
                 os.makedirs(self.dest)
 
@@ -280,8 +280,6 @@ class HtmlReporter(Reporter):
 
 
 class XUnitReporter(Reporter):
-    _lock = threading.RLock()
-
     def __init__(self, dest='results',
                  summary_title='XUnit Reports',
                  templates_path='templates',
@@ -297,7 +295,7 @@ class XUnitReporter(Reporter):
         self.summary_template = summary_template if summary_template else 'junit_suites_result.xml'
 
     def _make_output_dir(self):
-        with XUnitReporter._lock:
+        with Reporter.lock:
             if not os.path.exists(self.dest):
                 os.makedirs(self.dest)
 
