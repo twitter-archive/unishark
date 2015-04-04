@@ -4,114 +4,33 @@ A lightweight unittest extension (that extends unitest2)
   
 * <a href="#Overview">Overview</a>
 * <a href="#Prerequisites">Prerequisites</a>
-* <a href="#User_Guide">User Guide</a>
+* <a href="#The_Test_Config">The Test Config</a>
+  - <a href="#Customize_Test_Suites">Customize Test Suites</a>
   - <a href="#Test_Reports">Test Reports</a>
-  - <a href="#Customizing_Test_Suites">Customizing Test Suites</a>
-  - <a href="#Utils">Utils</a>
+  - <a href="#Concurrent_Tests">Concurrent Tests</a>
+* <a href="#Data_Driven">Data Driven</a>
+* <a href="#Advanced_Usage">Advanced Usage</a>
+* <a href="#More_Examples">More Examples</a>
   
 <a name="Overview"></a>
-
 ## Overview
   
+The features described below are based on version **0.2.0**.
+  
 unishark extends unittest (to be more accurate, unittest2) in the following ways:
-* Generating polished test reports in different formats such as HTML, XUnit, etc..
-* Organizing test suites with dictionary config (or yaml/json like config).
-* Offering test utils such as data-driven decorator to accelerate tests writing.
+* Customizing test suites with dictionary config (or yaml/json like config).
+* Running the tests in parallel.
+* Generating polished test reports in HTML/XUnit formats.
+* Offering data-driven decorator to accelerate tests writing.
   
-Extending existent unittest code with one or more unishark features is easy.
+You could acquire the first three features for your existent unittests immediately with a single config, without changing any existing code.
   
-<a name="Prerequisites"></a>
-
-## Prerequisites
-  
-Language:
-* Python>=2.7.6,<3
-* Python>=3.3
-  
-3rd Parties:
-* Jinja2>=2.7.2
-* MarkupSafe>=0.23
-  
-<a name="User_Guide"></a>
-
-## User Guide
-  
-<a name="Test_Reports"></a>
-
-### Test Reports
-  
-**Quick Start**
-  
-To generate HTML reports:
-```python
-if __name__ == '__main__':
-    reporter = unishark.HtmlReporter()
-    unittest.main(testRunner=unishark.BufferedTestRunner([reporter]))
-```
-  
-To generate XUnit reports (currently JUnit format):
-```python
-if __name__ == '__main__':
-    reporter = unishark.XUnitReporter()
-    unittest.main(testRunner=unishark.BufferedTestRunner([reporter]))
-```
-  
-<code>unishark.BufferedTestRunner</code> can buffer logging stream during the running of a test case, and writes all buffered output to report files at the end of the tests. To let unishark capture the logging stream and write logs into reports, simply redirect the logging stream to <code>unishark.out</code>, e.g.,
-```python
-formatter = logging.Formatter('%(levelname)s: %(message)s')
-handler = logging.StreamHandler(stream=unishark.out)
-handler.setLevel(logging.INFO)
-handler.setFormatter(formatter)
-logger = logging.getLogger(__name__)
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
-```
-  
-or in YAML format,
-```yaml
-formatters:
-  simple:
-    format: '%(levelname)s: %(message)s'
-handlers:
-  console:
-    class: logging.StreamHandler
-    formatter: simple
-    stream: ext://unishark.out
-```
-  
-**NOTE**: unishark does NOT buffer stdout and stderr. So if you use <code>print('some message')</code> in a test case, the message will be output to stdout during the test running.
-  
-**Advanced Usage**
-  
-The example below shows running unittest suite with <code>unishark.BufferedTestRunner</code> and having both HTML and XUnit reports generated at the same time. The reports will be in <code>./log</code> directory instead of the default output directory <code>./results</code>.
-```python
-if __name__ == '__main__':
-    # Prepare unittest suite
-    suite = unittest.TestLoader().loadTestsFromName('MyTestClass', module=test_module)
-    # Create reporters
-    html_reporter = unishark.HtmlReporter(dest='log')
-    xunit_reporter = unishark.XUnitReporter(dest='log')
-    # Assign a suite name to this suite (default name is 'suite')
-    html_reporter.suite_name = xunit_reporter.suite_name = 'my_suite'
-    # Run test suite with BufferedTestRunner and generate reports in both HTML and JUnit formats
-    result = unishark.BufferedTestRunner([html_reporter, xunit_reporter]).run(suite)
-    # Generate index/summary of the reports
-    html_reporter.collect()
-    xunit_reporter.collect()
-    exit_code = 0 if result.wasSuccessful() else 1
-    sys.exit(exit_code)
-```
-  
-<a name="Customizing_Test_Suites"></a>
-
-### Customizing Test Suites
-  
-This section describs how to organize unittest suites with a dictionary or YAML configuration.  
-Here is an example in YAML format:
+Here is an example config in YAML format (you could also write it directly in a <code>dict()</code>):
 ```yaml
 suites:
   my_suite_name_1:
     package: my.package.name
+    max_workers: 6
     groups:
       my_group_1:
         granularity: module
@@ -120,44 +39,39 @@ suites:
         except_methods: [test_module1.MyTestClass1.test_1]
       my_group_2:
         granularity: class
+        disable: False
         classes: [test_module3.MyTestClass5]
         except_methods: [test_module3.MyTestClass5.test_11]
   my_suite_name_2:
     package: my.package.name
+    max_workers: 2
     groups:
       my_group_1:
         granularity: method
         methods: [test_module3.MyTestClass6.test_13, test_module3.MyTestClass7.test_15]
+
+reporters:
+  html:
+    class: unishark.HtmlReporter
+    kwargs:
+      dest: logs
+      overview_title: 'Example Report'
+      overview_description: 'This is an example report'
+  xunit:
+    class: unishark.XUnitReporter
+    kwargs:
+      summary_title: 'Example Report'
+
+test:
+  suites: [my_suite_name_1, my_suite_name_2]
+  max_workers: 2
+  reporters: [html, xunit]
+  method_prefix: 'test'
 ```
   
-Notes of the configuration:
-* Name of a suite or a group could be anything you like.
-* **package**: A dotted path (relative to PYTHONPATH) indicating the python package where your test .py files locate. The tests in one suite have to be in the same package. To collect tests in another package, define another suite. However tests in one package can be divided into several suites.
-* **granularity**: One of 'module', 'class' and 'method'.
-* **modules**: A list of module names (test file names with .py trimmed). Only takes effect when granularity is 'module'.
-* **classes**: A list of dotted class names conforming to 'module.class'. Only takes effect when granularity is 'class'.
-* **methods**: A list of dotted method names conforming to 'module.class.method'. Only takes effect when granularity is 'method'.
-* **except_classes**: A list of excluded class names conforming to 'module.class'. Only takes effect when granularity is 'module'.
-* **except_methods**: A list of excluded methods names conforming to 'module.class.method'. Only takes effect when granularity is 'module' or 'class'.
+It defines two test suites with some of the test cases excluded, and tells unishark to run the defined set of tests with multi-threads (max_workers), then generate both HTML and XUnit (default JUnit) format reports at the end of testing.
   
-To temporarily exclude a suite or a group, set boolean attribute 'disable' to <code>True</code> in a suite or a group config:
-```yaml
-suites:
-  my_suite_name_1:
-    disable: True
-    ...
-```
-```yaml
-suites:
-  ...
-    ...
-      my_group_1:
-        disable: True
-```
-  
-You could also write the configuration directly in a <code>dict()</code>.
-  
-To run the customized test suites and generate reports, use <code>unishark.DefaultTestProgram</code>:
+To run it, simply add:
 ```python
 import unishark
 import yaml
@@ -170,33 +84,141 @@ if __name__ == '__main__':
     unishark.main(program)
 ```
   
-Or if you just like to load the test suites then run them with <code>unittest.TextTestRunner</code>:
-```python
-import unishark
-import yaml
-import unittest
-
-if __name__ == '__main__':
-    dict_conf = None
-    with open('your_yaml_config_file', 'r') as f:
-        dict_conf = yaml.load(f.read())  # use a 3rd party yaml parser, e.g., PyYAML
-    suites_dict = unishark.DefaultTestLoader().load_test_from_dict(dict_conf)
-    for suite_name, suite_content in suites_dict.items():
-        package_name = suite_content['package']
-        suite = suite_content['suite']
-        unittest.TextTestRunner.run(suite)
+<a name="Prerequisites"></a>
+## Prerequisites
+  
+Language:
+* Python 2.7, 3.3, 3.4
+  
+3rd Parties:
+* Jinja2>=2.7.2
+* MarkupSafe>=0.23
+* futures
+  
+<a name="The_Test_Config"></a>
+## The Test Config
+  
+Each config must have a **test** section, which has the following keys:
+* **suites**: A list of suite names defined in **suites** section. See <a href="#Customize_Test_Suites">Customize Test Suites</a>.
+* **reporters**: A list of reporter names defined in **reporters** section. See <a href="#Test_Reports">Test Reports</a>.
+* **max_workers**: The max number of threads used to run the test suites. Default is 1 if not set. See <a href="#Concurrent_Tests">Concurrent Tests</a>.
+* **method_prefix**: The prefix of the method names used to filter test cases when loading them. Default 'test' if not set. If it is set to '', there will be no filter.
+  
+<a name="Customize_Test_Suites"></a>
+### Customize Test Suites
+  
+This part describes **suites** section in the test config, with the example in <a href="#Overview">Overview</a>:
+* Name of a suite or a group could be anything you like.
+* **package**: A dotted path (relative to PYTHONPATH) indicating the python package where your test .py files locate. The tests in one suite have to be in the same package. To collect tests in another package, define another suite. However tests in one package can be divided into several suites.
+* **granularity**: One of 'module', 'class' and 'method'.
+* **modules**: A list of module names (test file names with .py trimmed). Only takes effect when granularity is 'module'.
+* **classes**: A list of dotted class names conforming to 'module.class'. Only takes effect when granularity is 'class'.
+* **methods**: A list of dotted method names conforming to 'module.class.method'. Only takes effect when granularity is 'method'.
+* **except_classes**: A list of excluded class names conforming to 'module.class'. Only takes effect when granularity is 'module'.
+* **except_methods**: A list of excluded methods names conforming to 'module.class.method'. Only takes effect when granularity is 'module' or 'class'.
+* **max_workers**: The max number of threads used to run the test cases within a suite. Default is 1 if not set. See <a href="#Concurrent_Tests">Concurrent Tests</a>.
+  
+To temporarily exclude a group of tests, set boolean attribute 'disable' to True (default False if not set) in a group config:
+```yaml
+suites:
+  ...
+    ...
+      my_group_1:
+        disable: True
 ```
   
-**NOTE**: suite names are reflected in the reports while groups are not. Test cases are grouped by class then module in the reports. **groups** config is simply for conveniently including/excluding a group of test cases by enabling/disabling the group.
+To include/exclude a suite, add/remove the suite name in/from the **suites** list in the **test** section:
+```yaml
+test:
+  suites: [my_suite_1] # will not run my_suite_2
+  ...
+```
   
-<a name="Utils"></a>
+<a name="Test_Reports"></a>
+### Test Reports
+  
+This part describes the **reporters** section in the test config, with the example in <a href="#Overview">Overview</a>:
+* **class**: A dotted reporter class name.
+* **kwargs**: The arguments for initiating the reporter instance.
+  
+You could define multiple reporters and use all of them to generate different formats of reports for a single run of the tests.
+  
+To include/exclude a reporter, add/remove the reporter name in/from the **reporters** list in the **test** section:
+```yaml
+test:
+  reporters: [html] # will not generate xunit format reports
+  ...
+```
+  
+If the list is empty, no report files will be generated.
+  
+unishark can buffer logging stream during the running of a test case, and writes all buffered output to report files at the end of testing. To let unishark capture the logging stream and write logs into reports, simply redirect the logging stream to <code>unishark.out</code>, e.g.,
+```python
+formatter = logging.Formatter('%(levelname)s: %(message)s')
+handler = logging.StreamHandler(stream=unishark.out)
+handler.setLevel(logging.INFO)
+handler.setFormatter(formatter)
+logger = logging.getLogger('example')
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
+```
+  
+or in YAML format,
+```yaml
+formatters:
+  simple:
+    format: '%(levelname)s: %(message)s'
 
-### Utils
+handlers:
+  myhandler:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://unishark.out
+
+loggers:
+  example:
+    level: DEBUG
+    handlers: [myhandler]
+    propagate: False
+```
   
-**Data-driven Decorator**
+**NOTE**: 
+* unishark does NOT buffer stdout and stderr. So if you use <code>print('some message')</code> in a test case, the message will be output to stdout during the test running.
+* Suite names are reflected in the reports while groups are not. Test cases are grouped by class then module in the reports. **groups** config is simply for conveniently including/excluding a group of test cases by enabling/disabling the group.
+  
+<a name="Concurrent_Tests"></a>
+### Concurrent Tests
+  
+There are two levels of concurrency: concurrency at classes level within a suite and concurrency at suites level.
+  
+To enable concurrency within a suite, set 'max_workers' > 1 in the suite config: 
+```yaml
+suites:
+  my_suite_name_1:
+    max_workers: 6
+    ...
+```
+  
+To enable concurrency at suites level, set 'max_workers' > 1 in the **test** section:
+```yaml
+test:
+  ...
+  max_workers: 2
+```
+  
+**NOTE**: 
+* Currently only multi-threading is supported, not multi-processing. Multi-threading concurrency will significantly shorten the running time of I/O bound tests (which many practical cases are, e.g., http requests). But it is not so useful when the tests are CPU bound.
+* The smallest granularity of the concurrency is class, not method (this is to make sure <code>setUpClass()</code> and <code>tearDownClass()</code> is executed once for each class, unfortunately). This means test cases in the same class are always executed sequentially, and test cases from the different classes might be executed concurrently.
+* It is user's responsibility to make sure the test cases are thread-safe before enabling the concurrent tests. For example, It is dangerous for any method, including <code>setUpClass()</code>/<code>tearDownClass()</code> and <code>setUp()</code>/<code>tearDown()</code>, to modify a cross-classes shared resource, while it is OK for them to modify a class-scope shared resource.
+* Technically one can split a class into two suites (by loading test cases with 'method' granularity), and run the methods in the same class concurrently by running the two suites concurrently (but why would you do that?). In this case, <code>setUpClass()</code>/<code>tearDownClass()</code> will be executed twice, and modifying a class-scope shared resource might be a problem.
+* To achieve full concurrency, set 'max_workers' >= number of classes within a suite and set 'max_workers' >= number of suites in the **test** section.
+* If 'max_workers' is not set or its value <= 1, it is just sequential running.
+
+<a name="Data_Driven"></a>
+## Data Driven
   
 Here are some effects of using <code>@unishark.data_driven</code>.  
-'Json' style data-driven: 
+'Json' style data-driven. This style is good for loading the data in json format to drive the test case: 
 ```python
 @unishark.data_driven(*[{'userid': 1, 'passwd': 'abc'}, {'userid': 2, 'passwd': 'def'}])
 def test_data_driven(self, **param):
@@ -226,25 +248,81 @@ userid: 4, passwd: d
   
 Cross-multiply data-driven:
 ```python
-@unishark.data_driven(left=list(range(1, 10)))
-@unishark.data_driven(right=list(range(1, 10)))
+@unishark.data_driven(left=list(range(10)))
+@unishark.data_driven(right=list(range(10)))
 def test_data_driven(self, **param):
     l = param['left']
     r = param['right']
-    print(str(l) + ' x ' + str(r) + ' = ' + str(l * r))
+    print('%d x %d = %d' % (l, r, l * r))
 ```
-
+  
 Results:
 ```
+0 x 1 = 0
+0 x 2 = 0
+...
 1 x 1 = 1
 1 x 2 = 2
-...
-2 x 1 = 2
-2 x 2 = 4
 ...
 ...
 9 x 8 = 72
 9 x 9 = 81
 ```
   
-For more examples, please see <code>example/</code>. To run the examples, please read <code>example/read_me.txt</code> first.
+You can get the permutations (with repetition) of the parameters values by doing:
+```python
+@unishark.data_driven(...)
+@unishark.data_driven(...)
+@unishark.data_driven(...)
+...
+```
+  
+<a name="Advanced_Usage"></a>
+## Advanced Usage
+  
+unishark is fully compatible with unittest because it is extended from unittest. Here are some examples of mixed use of the two:
+
+Run unittest suite with <code>unishark.BufferedTestRunner</code>: 
+```python
+if __name__ == '__main__':
+    reporter = unishark.HtmlReporter(dest='log')
+    unittest.main(testRunner=unishark.BufferedTestRunner(reporters=[reporter]))
+```
+```python
+if __name__ == '__main__':
+    import sys
+    suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
+    reporter = unishark.HtmlReporter(dest='log')
+    # This will run the suite with 2 workers and generate 'mytest2_result.html'
+    result = unishark.BufferedTestRunner(reporters=[reporter]).run(suite, name='mytest2', max_workers=2)
+    sys.exit(0 if result.wasSuccessful() else 1)
+```
+```python
+if __name__ == '__main__':
+    import sys
+    suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
+    result = unishark.BufferedTestRunner().run(suite, name='mytest3', max_workers=2)
+    # Generating reports can be delayed
+    reporter = unishark.HtmlReporter(dest='log')
+    reporter.report(result)
+```
+  
+Load test suites with <code>unishark.DefaultTestLoader</code> and run them with <code>unittest.TextTestRunner</code>:
+```python
+if __name__ == '__main__':
+    dict_conf = None
+    with open('your_yaml_config_file', 'r') as f:
+        dict_conf = yaml.load(f.read())  # use a 3rd party yaml parser, e.g., PyYAML
+    suites = unishark.DefaultTestLoader(method_prefix='test').load_test_from_dict(dict_conf)
+    for suite_name, suite_content in suites.items():
+        package_name = suite_content['package']
+        suite = suite_content['suite']
+        max_workers = suite_content['max_workers']
+        unittest.TextTestRunner().run(suite)
+```
+  
+<a name="More_Examples"></a>
+## More Examples
+  
+For more examples, please see 'example/' in the project directory. To run the examples, please read 'example/read_me.txt' first.
+  
