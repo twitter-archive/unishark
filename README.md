@@ -11,11 +11,14 @@ A lightweight unittest extension (that extends unitest2)
 * <a href="#Data_Driven">Data Driven</a>
 * <a href="#Advanced_Usage">Advanced Usage</a>
 * <a href="#More_Examples">More Examples</a>
+* <a href="#User_Extension">User Extension</a>
+  - <a href="#Customized_Reports">Customized Reports</a>
+  - <a href="#Implement_TestProgram">Implement TestProgram</a>
   
 <a name="Overview"></a>
 ## Overview
   
-The features described below are based on version **0.2.0**.
+The features described in this document come with the latest version **0.2.0**. Earlier versions may not have some of the featrues.
   
 unishark extends unittest (to be more accurate, unittest2) in the following ways:
 * Customizing test suites with dictionary config (or yaml/json like config).
@@ -71,7 +74,7 @@ test:
   
 It defines two test suites with some of the test cases excluded, and tells unishark to run the defined set of tests with multi-threads (max_workers), then generate both HTML and XUnit (default JUnit) format reports at the end of testing.
   
-To run it, simply add:
+To run it, simply add the following code:
 ```python
 import unishark
 import yaml
@@ -83,6 +86,10 @@ if __name__ == '__main__':
     program = unishark.DefaultTestProgram(dict_conf)
     unishark.main(program)
 ```
+  
+And a HTML report is like:
+![Screenshot 1](https://github.com/yni6/contentholder/blob/master/images/unishark_report_overview.png)
+![Screenshot 2](https://github.com/yni6/contentholder/blob/master/images/unishark_report_detail.png)
   
 <a name="Prerequisites"></a>
 ## Prerequisites
@@ -305,6 +312,8 @@ if __name__ == '__main__':
     # Generating reports can be delayed
     reporter = unishark.HtmlReporter(dest='log')
     reporter.report(result)
+    # Also generate overview and index pages
+    reporter.collect()
 ```
   
 Load test suites with <code>unishark.DefaultTestLoader</code> and run them with <code>unittest.TextTestRunner</code>:
@@ -325,4 +334,43 @@ if __name__ == '__main__':
 ## More Examples
   
 For more examples, please see 'example/' in the project directory. To run the examples, please read 'example/read_me.txt' first.
+  
+<a name="User_Extension"></a>
+## User Extension
+  
+<a name="Customized_Reports"></a>
+### Customized Reports
+  
+If you prefer a different style of HTML or XUnit reports, passing different template files to the <code>unishark.HtmlReporter</code> or <code>unishark.XUnitReporter</code> constructor is the easiest way:
+```yaml
+reporters:
+  html:
+    class: unishark.HtmlReporter
+    kwargs:
+      dest: logs
+      overview_title: 'Example Report'
+      overview_description: 'This is an example report'
+      templates_path: mytemplates
+      report_template: myreport.html
+      overview_template: myoverview.html
+      index_template: myindex.html
+  xunit:
+    class: unishark.XUnitReporter
+    kwargs:
+      summary_title: 'Example Report'
+      templates_path: xmltemplates
+      report_template: xunit_report.xml
+      summary_template: xunit_summary.xml
+```
+  
+**NOTE**:
+* The customized templates must also be <a href="http://jinja.pocoo.org/docs/dev/templates">Jinja2</a> templates
+* Once you decide to use your own templates, you have to specify all of the 'teamplates_path' and '*_template' arguments. If one of them is None or empty, the reporters will still use the default templates carried with unishark.
+  
+If the above customization cannot satisfy you, you could write your own reporter class extending <code>unishark.Reporter</code> abstract class. Either passing the reporter instance to <code>unishark.BufferedTestRunner</code> or configuring the initiating in the test config will make unishark run your reporter.
+  
+<a name="Implement_TestProgram"></a>
+### Implement TestProgram
+  
+You could also write your own test program class extending <code>unishark.TestProgram</code> abstract class. Implement <code>run()</code> method, making sure it returns an integer exit code, and call <code>unishark.main(your_program)</code> to run it.
   
