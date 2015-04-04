@@ -88,8 +88,8 @@ if __name__ == '__main__':
 ```
   
 And a HTML report is like:
-![Screenshot 1](https://github.com/yni6/contentholder/blob/master/images/unishark_report_overview.png)
-![Screenshot 2](https://github.com/yni6/contentholder/blob/master/images/unishark_report_detail.png)
+![Screenshot 1](https://rawgit.com/twitter/unishark/master/docs/unishark_report_overview.png)
+![Screenshot 2](https://rawgit.com/twitter/unishark/master/docs/unishark_report_detail.png)
   
 <a name="Prerequisites"></a>
 ## Prerequisites
@@ -268,6 +268,7 @@ Results:
 0 x 1 = 0
 0 x 2 = 0
 ...
+1 x 0 = 0
 1 x 1 = 1
 1 x 2 = 2
 ...

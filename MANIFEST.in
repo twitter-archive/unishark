@@ -1,2 +1,3 @@
 include unishark/templates/*.html
 include unishark/templates/*.xml
+include docs/*.rst
