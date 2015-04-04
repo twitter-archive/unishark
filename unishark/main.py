@@ -34,6 +34,9 @@ class TestProgram(object):
 class DefaultTestProgram(TestProgram):
     def __init__(self, test_dict_conf, verbosity=1, descriptions=False):
         self.test_dict_conf = test_dict_conf
+        self.method_prefix = 'test'
+        if 'method_prefix' in self.test_dict_conf['test'] and self.test_dict_conf['test']['method_prefix'] is not None:
+            self.method_prefix = self.test_dict_conf['test']['method_prefix']
         self.verbosity = verbosity
         self.descriptions = descriptions
         self.reporters = self._make_reporters()
@@ -52,13 +55,15 @@ class DefaultTestProgram(TestProgram):
         mod = __import__('.'.join(parts[:-1]))
         cls = getattr(mod, parts[-1], None)
         if cls is None:
-            raise ImportError
+            raise AttributeError('Class not found.')
+        if not issubclass(cls, unishark.Reporter):
+            raise TypeError('Class is not a subclass of Reporter.')
         return cls
 
     def _make_reporters(self):
         created_reporters = []
         test = self.test_dict_conf['test']
-        reporters = self.test_dict_conf['reporters']
+        reporters = self.test_dict_conf['reporters'] if 'reporters' in self.test_dict_conf else dict()
         if 'reporters' in test:
             for name in test['reporters']:
                 reporter = reporters[name]
@@ -72,7 +77,7 @@ class DefaultTestProgram(TestProgram):
 
     def _run_suites_sequentially(self):
         exit_code = 0
-        suites = unishark.DefaultTestLoader().load_test_from_dict(self.test_dict_conf)
+        suites = unishark.DefaultTestLoader(method_prefix=self.method_prefix).load_test_from_dict(self.test_dict_conf)
         runner = unishark.BufferedTestRunner(reporters=self.reporters,
                                              verbosity=self.verbosity,
                                              descriptions=self.descriptions)
@@ -88,7 +93,7 @@ class DefaultTestProgram(TestProgram):
 
     def _run_suites_concurrently(self, max_workers_on_suites):
         exit_code = 0
-        suites = unishark.DefaultTestLoader().load_test_from_dict(self.test_dict_conf)
+        suites = unishark.DefaultTestLoader(method_prefix=self.method_prefix).load_test_from_dict(self.test_dict_conf)
         start_time = time.time()
         with concurrent.futures.ThreadPoolExecutor(max_workers_on_suites) as executor:
             futures = []
