@@ -1,8 +1,8 @@
-Instruction
-===========
+INTRODUCTION
+============
 
 The features described below come with the latest version
-**0.2.0**. Earlier versions may not have some of the featrues.
+**0.2.0**. Earlier versions may not have some of the features.
 
 unishark extends unittest (to be more accurate, unittest2) in the
 following ways:
@@ -84,10 +84,9 @@ To run it, simply add the following code:
         program = unishark.DefaultTestProgram(dict_conf)
         unishark.main(program)
 
-And a HTML report is like:
+A HTML report example can be found Here_.
 
-.. image:: https://rawgit.com/twitter/unishark/master/docs/unishark_report_overview.png
-.. image:: https://rawgit.com/twitter/unishark/master/docs/unishark_report_detail.png
+.. _Here: https://github.com/twitter/unishark
 
 Data Driven
 -----------
@@ -162,4 +161,6 @@ by doing:
     @unishark.data_driven(...)
     ...
 
-For more details please visit the project home page: https://github.com/twitter/unishark and read README.md.
+For more information please visit the Project_Home_ and read README.md.
+
+.. _Project_Home: https://github.com/twitter/unishark
