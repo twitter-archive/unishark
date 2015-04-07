@@ -4,6 +4,7 @@ A lightweight unittest extension (that extends unitest2)
   
 * <a href="#Overview">Overview</a>
 * <a href="#Prerequisites">Prerequisites</a>
+* <a href="#Installation">Installation</a>
 * <a href="#The_Test_Config">The Test Config</a>
   - <a href="#Customize_Test_Suites">Customize Test Suites</a>
   - <a href="#Test_Reports">Test Reports</a>
@@ -97,10 +98,20 @@ And a HTML report is like:
 Language:
 * Python 2.7, 3.3, 3.4
   
-3rd Parties:
+3rd Party Dependencies:
 * Jinja2>=2.7.2
 * MarkupSafe>=0.23
 * futures
+  
+OS:
+* Tested: Linux, MacOS X
+  
+<a name="Installation"></a>
+## Installation
+  
+pip install unishark
+  
+(pypi: https://pypi.python.org/pypi/unishark)
   
 <a name="The_Test_Config"></a>
 ## The Test Config
@@ -217,7 +228,7 @@ test:
 * Currently only multi-threading is supported, not multi-processing. Multi-threading concurrency will significantly shorten the running time of I/O bound tests (which many practical cases are, e.g., http requests). But it is not so useful when the tests are CPU bound.
 * The smallest granularity of the concurrency is class, not method (this is to make sure <code>setUpClass()</code> and <code>tearDownClass()</code> is executed once for each class, unfortunately). This means test cases in the same class are always executed sequentially, and test cases from the different classes might be executed concurrently.
 * It is user's responsibility to make sure the test cases are thread-safe before enabling the concurrent tests. For example, It is dangerous for any method, including <code>setUpClass()</code>/<code>tearDownClass()</code> and <code>setUp()</code>/<code>tearDown()</code>, to modify a cross-classes shared resource, while it is OK for them to modify a class-scope shared resource.
-* Technically one can split a class into two suites (by loading test cases with 'method' granularity), and run the methods in the same class concurrently by running the two suites concurrently (but why would you do that?). In this case, <code>setUpClass()</code>/<code>tearDownClass()</code> will be executed twice, and modifying a class-scope shared resource might be a problem.
+* Technically one can split a class into two suites (by loading test cases with 'method' granularity), and run the methods in the same class concurrently by running the two suites concurrently (but why would you do that?). In this case, <code>setUpClass()</code>/<code>tearDownClass()</code> will be executed twice for the same class, and modifying a class-scope shared resource might be a problem.
 * To achieve full concurrency, set 'max_workers' >= number of classes within a suite and set 'max_workers' >= number of suites in the **test** section.
 * If 'max_workers' is not set or its value <= 1, it is just sequential running.
 
