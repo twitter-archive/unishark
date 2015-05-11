@@ -19,7 +19,7 @@ A lightweight unittest extension (that extends unitest2)
 <a name="Overview"></a>
 ## Overview
   
-The features described in this document come with the latest version **0.2.0**. Earlier versions may not have some of the featrues.
+The features described in this document come with the latest version **0.2.1**. Earlier versions may not have some of the featrues.
   
 unishark extends unittest (to be more accurate, unittest2) in the following ways:
 * Customizing test suites with dictionary config (or yaml/json like config).
@@ -295,7 +295,30 @@ You can get the permutations (with repetition) of the parameters values by doing
 @unishark.data_driven(...)
 ...
 ```
-  
+
+Multi-threads data-driven in 'json style':
+```python
+@unishark.multi_threading_data_driven(2, *[{'userid': 1, 'passwd': 'abc'}, {'userid': 2, 'passwd': 'def'}])
+def test_data_driven(self, **param):
+    print('userid: %d, passwd: %s' % (param['userid'], param['passwd']))
+```
+
+Results: same results as using <code>unishark.data_driven</code>, but running with different inputs in separate threads, up to 2 threads are spawned.
+
+Multi-threads data-driven in 'args style':
+```python
+@unishark.multi_threading_data_driven(5, time=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+def test_data_driven(self, **param):
+    sleep(param['time'])
+```
+
+Results: it spawns up to 5 threads to run the test with 10 inputs concurrently (only sleep 1 sec in each thread).
+It takes about 2 sec in total (10 sec if using <code>unishark.data_driven</code>) to run.
+
+**NOTE**: It is user's responsibility to ensure thread-safe within the test method which is decorated by <code>unishark.multi_threading_data_driven</code>.
+If exceptions are thrown in one or more threads, the exceptions information will be collected and summarized in the "main" thread in the end and thrown as <code>unishark.exception.MultipleErrors</code>.
+
+
 <a name="Advanced_Usage"></a>
 ## Advanced Usage
   
