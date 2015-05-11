@@ -6,6 +6,7 @@ import unittest
 import logging
 import unishark
 from time import sleep
+import threading
 
 log = logging.getLogger(__name__)
 
@@ -60,12 +61,40 @@ class MyTestClass8(unittest.TestCase):
         """Test cross-multiply data-driven"""
         l = param['left']
         r = param['right']
-        sleep(0.1)
         log.info('%d x %d = %d' % (l, r, l * r))
+
+    @unishark.multi_threading_data_driven(10, time=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+    def test_18(self, **param):
+        print('Thread %d sleeps %.1f sec.' % (threading.current_thread().ident, param['time']))
+        log.info('Thread %d sleeps %.1f sec.' % (threading.current_thread().ident, param['time']))
+        sleep(param['time'])
+
+    @unishark.multi_threading_data_driven(3, time=[1, 2, 1, 1, 1, 2])
+    def _sleep_with_errors(self, **param):
+        if param['time'] == 1:
+            print('Thread %d sleeps %.1f sec.' % (threading.current_thread().ident, param['time']))
+            log.info('Thread %d sleeps %.1f sec.' % (threading.current_thread().ident, param['time']))
+            sleep(param['time'])
+        else:
+            raise AssertionError('Error thrown in thread %d.' % threading.current_thread().ident)
+
+    def test_19(self):
+        self._sleep_with_errors()
+
+    @unishark.multi_threading_data_driven(2, time1=[1, 1])
+    @unishark.multi_threading_data_driven(3, time2=[1, 2, 1])
+    def test_20(self, **param):
+        time = param['time1'] * param['time2']
+        if time == 1:
+            print('Thread %d sleeps %.1f sec.' % (threading.current_thread().ident, time))
+            log.info('Thread %d sleeps %.1f sec.' % (threading.current_thread().ident, time))
+            sleep(time)
+        else:
+            raise AssertionError('Error thrown in thread %d.' % threading.current_thread().ident)
 
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
-    result = unishark.BufferedTestRunner().run(suite, name='mytest3', max_workers=2)
+    result = unishark.BufferedTestRunner().run(suite, name='mytest3', max_workers=3)
     reporter = unishark.HtmlReporter(dest='log')
     reporter.report(result)

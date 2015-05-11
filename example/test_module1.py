@@ -21,7 +21,7 @@ class MyTestClass1(unittest.TestCase):
         log.info('This is an example of data_driven decorator')
         self.repeat_part()
 
-    @unishark.data_driven(user_id=[1, 2, 3, 4], passwd=['a', 'b', 'c', 'd'])
+    @unishark.data_driven(user_id=[1, 2, 3, 4, 5], passwd=['a', 'b', 'c', 'd'])
     def test_2(self, **param):
         """Here is test_2's doc str"""
         log.info('Another example of data_driven decorator')

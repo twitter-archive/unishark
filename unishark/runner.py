@@ -306,7 +306,6 @@ class BufferedTestRunner(unittest.TextTestRunner):
     def _regroup_test_cases(self, test):
         dic = dict()
         self._group_test_cases_by_class(test, dic)
-        log.debug('Test cases grouped by class: %r' % dic)
         suite = unittest.TestSuite()
         for _, cases in dic.items():
             cls_suite = unittest.TestSuite()
@@ -327,7 +326,7 @@ class BufferedTestRunner(unittest.TextTestRunner):
                 test(result)
             else:
                 test = self._regroup_test_cases(test)
-                log.debug('Regrouped test: %r' % test)
+                log.debug('Regrouped tests by class: %r' % test)
                 results = [self._before_run() for _ in test]
                 with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
                     for t, r in zip(test, results):
@@ -339,6 +338,11 @@ class BufferedTestRunner(unittest.TextTestRunner):
                 stop_test_run()
         result.sum_duration = time.time() - start_time
         self._after_run(result)
+
+        log.debug('%d free IO buffer(s) in the pool, %d in use.' %
+                  (len(_io_buffer.buff_queue), len(_io_buffer.buff_dict)))
+        if _io_buffer.buff_dict:
+            log.debug('IO buffers in use: %r' % _io_buffer.buff_dict)
 
         for reporter in self.reporters:
             reporter.report(result)

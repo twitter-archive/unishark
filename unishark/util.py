@@ -15,6 +15,7 @@
 
 import inspect
 from os import sep
+from traceback import format_exception
 
 
 class ContextManager(object):
@@ -52,3 +53,30 @@ def get_method_name(obj):
 
 def get_class_name(obj):
     return type(obj).__name__
+
+
+def _is_relevant_tb_level(tb):
+    return '__unittest' in tb.tb_frame.f_globals
+
+
+def _count_relevant_tb_levels(tb):
+    length = 0
+    while tb and not _is_relevant_tb_level(tb):
+        length += 1
+        tb = tb.tb_next
+    return length
+
+
+def exc_info_to_string(exc_info):
+    """Also see runner.BufferedTestResult"""
+    exctype, value, tb = exc_info
+    # Skip test runner traceback levels
+    while tb and _is_relevant_tb_level(tb):
+        tb = tb.tb_next
+    if exctype is AssertionError:
+        # Skip assert*() traceback levels
+        length = _count_relevant_tb_levels(tb)
+        msg_lines = format_exception(exctype, value, tb, length)
+    else:
+        msg_lines = format_exception(exctype, value, tb)
+    return ''.join(msg_lines).rstrip()

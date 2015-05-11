@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from os import path
 
 NAME = 'unishark'
-VERSION = '0.2.0'
+VERSION = '0.2.1'
 
 long_description = (
     open(path.join('docs', 'README.rst'), 'r').read() + '\n' +

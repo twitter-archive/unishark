@@ -16,16 +16,16 @@ __all__ = ['DefaultTestLoader',
            'out', 'BufferedTestResult', 'BufferedTestRunner',
            'HtmlReporter', 'XUnitReporter',
            'main', 'DefaultTestProgram',
-           'data_driven',
+           'data_driven', 'multi_threading_data_driven',
            'ContextManager', 'contexts']
 
 from unishark.runner import (out, BufferedTestResult, BufferedTestRunner)
 from unishark.reporter import (Reporter, HtmlReporter, XUnitReporter)
-from unishark.decorator import data_driven
+from unishark.decorator import data_driven, multi_threading_data_driven
 from unishark.main import (TestProgram, DefaultTestProgram, main)
 from unishark.loader import DefaultTestLoader
 from unishark.util import ContextManager, contexts
 
 
 PACKAGE = __name__
-VERSION = '0.2.0'
+VERSION = '0.2.1'
