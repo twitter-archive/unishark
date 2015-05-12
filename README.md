@@ -303,7 +303,7 @@ def test_data_driven(self, **param):
     print('userid: %d, passwd: %s' % (param['userid'], param['passwd']))
 ```
 
-Results: same results as using <code>unishark.data_driven</code>, but running with different inputs in separate threads, up to 2 threads are spawned.
+Results: same results as using <code>unishark.data_driven</code>, but up to 2 threads are spawned, each running the test with a set of inputs (userid, passwd).
 
 Multi-threads data-driven in 'args style':
 ```python
@@ -312,12 +312,12 @@ def test_data_driven(self, **param):
     sleep(param['time'])
 ```
 
-Results: it spawns up to 5 threads to run the test with 10 inputs concurrently (only sleep 1 sec in each thread).
+Results: 5 threads are spawned to run the test with 10 sets of inputs concurrently (only sleep 1 sec in each thread).
 It takes about 2 sec in total (10 sec if using <code>unishark.data_driven</code>) to run.
 
 **NOTE**: It is user's responsibility to ensure thread-safe within the test method which is decorated by <code>unishark.multi_threading_data_driven</code>.
-If exceptions are thrown in one or more threads, the exceptions information will be collected and summarized in the "main" thread in the end and thrown as <code>unishark.exception.MultipleErrors</code>.
-
+If exceptions are thrown in one or more threads, the exceptions information will be collected and summarized in the "main" thread and thrown as <code>unishark.exception.MultipleErrors</code>.
+  
 
 <a name="Advanced_Usage"></a>
 ## Advanced Usage

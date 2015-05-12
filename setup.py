@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 from os import path
+from sys import version_info
 
 NAME = 'unishark'
 VERSION = '0.2.1'
@@ -8,6 +9,15 @@ long_description = (
     open(path.join('docs', 'README.rst'), 'r').read() + '\n' +
     open(path.join('docs', 'CHANGELOG.rst'), 'r').read()
 )
+
+py3_requires = ['Jinja2>=2.7.2', 'MarkupSafe>=0.23']
+py2_requires = ['Jinja2>=2.7.2', 'MarkupSafe>=0.23', 'futures>=2.2.0']
+
+requires = None
+if version_info[0] >= 3 and version_info[1] >= 2:
+    requires = py3_requires
+else:
+    requires = py2_requires
 
 setup(
     name=NAME,
@@ -44,7 +54,7 @@ setup(
     keywords='unittest extension test reports config utility',
 
     # See https://packaging.python.org/en/latest/requirements.html
-    install_requires=['Jinja2>=2.7.2', 'MarkupSafe>=0.23', 'futures>=2.2.0'],
+    install_requires=requires,
 
     extras_require={
         'test': ['coveralls'],
