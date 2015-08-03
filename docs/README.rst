@@ -1,9 +1,6 @@
 INTRODUCTION
 ============
 
-The features described below come with the latest version
-**0.2.0**. Earlier versions may not have some of the features.
-
 unishark extends unittest (to be more accurate, unittest2) in the
 following ways:
 
@@ -160,6 +157,27 @@ by doing:
     @unishark.data_driven(...)
     @unishark.data_driven(...)
     ...
+
+Multi-threads data-driven in 'json style':
+
+.. code:: python
+
+    @unishark.multi_threading_data_driven(2, *[{'userid': 1, 'passwd': 'abc'}, {'userid': 2, 'passwd': 'def'}])
+    def test_data_driven(self, **param):
+        print('userid: %d, passwd: %s' % (param['userid'], param['passwd']))
+
+Results: same results as using <code>unishark.data_driven</code>, but up to 2 threads are spawned, each running the test with a set of inputs (userid, passwd).
+
+Multi-threads data-driven in 'args style':
+
+.. code:: python
+
+    @unishark.multi_threading_data_driven(5, time=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+    def test_data_driven(self, **param):
+        sleep(param['time'])
+
+Results: 5 threads are spawned to run the test with 10 sets of inputs concurrently (only sleep 1 sec in each thread).
+It takes about 2 sec in total (10 sec if using <code>unishark.data_driven</code>) to run.
 
 For more information please visit the Project_Home_ and read README.md.
 

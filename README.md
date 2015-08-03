@@ -19,7 +19,7 @@ A lightweight unittest extension (that extends unitest2)
 <a name="Overview"></a>
 ## Overview
   
-The features described in this document come with the latest version **0.2.1**. Earlier versions may not have some of the featrues.
+The features described in this document come with the latest version **0.2.2**. Earlier versions may not have some of the featrues.
   
 unishark extends unittest (to be more accurate, unittest2) in the following ways:
 * Customizing test suites with dictionary config (or yaml/json like config).

@@ -3,15 +3,15 @@ from os import path
 from sys import version_info
 
 NAME = 'unishark'
-VERSION = '0.2.1'
+VERSION = '0.2.2'
 
 long_description = (
     open(path.join('docs', 'README.rst'), 'r').read() + '\n' +
     open(path.join('docs', 'CHANGELOG.rst'), 'r').read()
 )
 
-py3_requires = ['Jinja2>=2.7.2', 'MarkupSafe>=0.23']
-py2_requires = ['Jinja2>=2.7.2', 'MarkupSafe>=0.23', 'futures>=2.2.0']
+py3_requires = ['Jinja2>=2.7.2', 'MarkupSafe>=0.15']
+py2_requires = ['Jinja2>=2.7.2', 'MarkupSafe>=0.15', 'futures>=2.1.1']
 
 requires = None
 if version_info[0] >= 3 and version_info[1] >= 2:

@@ -8,6 +8,7 @@ import logging
 from time import sleep
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 
 
 class MyTestClass3(unittest.TestCase):

@@ -12,14 +12,14 @@ log = logging.getLogger(__name__)
 
 class MyTestClass1(unittest.TestCase):
     @unishark.data_driven(*[{'user_id': 1, 'passwd': 'abc'}, {'user_id': 2, 'passwd': 'def'}])
-    def repeat_part(self, **param):
-        sleep(1)
-        log.info('user_id: %d, passwd: %s' % (param['user_id'], param['passwd']))
+    def repeat_part(self, name, interval=1.0, **param):
+        sleep(interval)
+        log.info('%s - user_id: %d, passwd: %s' % (name, param['user_id'], param['passwd']))
 
     def test_1(self):
         """Here is test_1's doc str"""
         log.info('This is an example of data_driven decorator')
-        self.repeat_part()
+        self.repeat_part('Auth', interval=0.5)
 
     @unishark.data_driven(user_id=[1, 2, 3, 4, 5], passwd=['a', 'b', 'c', 'd'])
     def test_2(self, **param):
@@ -47,4 +47,4 @@ class MyTestClass2(unittest.TestCase):
 
 if __name__ == '__main__':
     reporter = unishark.HtmlReporter(dest='log')
-    unittest.main(testRunner=unishark.BufferedTestRunner(reporters=[reporter]))
+    unittest.main(testRunner=unishark.BufferedTestRunner(reporters=[reporter], verbosity=2, descriptions=True))

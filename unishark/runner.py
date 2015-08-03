@@ -114,7 +114,7 @@ class BufferedTestResult(unittest.TextTestResult):
         self.sum_duration = 0.0
         self.successes = 0
         self.name = 'test'
-        self.descriptions = ''
+        self.description = ''
 
     def _add_result(self, test, duration, status, output, trace_back):
         mod_name = get_module_name(test)
@@ -131,7 +131,7 @@ class BufferedTestResult(unittest.TextTestResult):
     @staticmethod
     def _get_test_info(test):
         test_name = get_long_method_name(test)
-        test_doc = getattr(test, '_testMethodDoc')
+        test_doc = getattr(test, '_testMethodDoc', None)
         return test_name, test_doc or 'No Method Doc\n'
 
     def _exc_info_to_string(self, error, test):
