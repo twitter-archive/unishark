@@ -100,8 +100,8 @@ Language:
   
 3rd Party Dependencies:
 * Jinja2>=2.7.2
-* MarkupSafe>=0.23
-* futures
+* MarkupSafe>=0.15
+* futures>=2.1.1
   
 OS:
 * Tested: Linux, MacOS X
