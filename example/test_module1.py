@@ -28,8 +28,12 @@ class MyTestClass1(unittest.TestCase):
         sleep(1)
         log.info('user_id: %d, passwd: %s' % (param['user_id'], param['passwd']))
 
+    @staticmethod
+    def test_something():
+        assert 1 == 2
 
-class MyTestClass2(unittest.TestCase):
+
+class MyTestClass2(MyTestClass1):
     @unittest.skip('Here is the reason of skipping test_3')
     def test_3(self):
         """Here is test_3's doc str"""
@@ -43,6 +47,14 @@ class MyTestClass2(unittest.TestCase):
         sleep(2)
         log.info('Try escape: <div>')
         self.assertEqual(1, 1)
+
+
+class NotUnitTestCase(object):
+    def __init__(self):
+        self.name = 'nooo'
+
+    def test_99(self):
+        assert self.name == 'xxx'
 
 
 if __name__ == '__main__':

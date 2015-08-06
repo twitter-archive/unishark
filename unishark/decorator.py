@@ -23,15 +23,15 @@ from unishark.exception import MultipleErrors
 
 
 def data_driven(*list_of_dicts, **dict_of_lists):
-    def decorator(method):
-        @wraps(method)
+    def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             if list_of_dicts:
                 for params in list_of_dicts:
                     if type(params) is not dict:
                         raise TypeError('%r is not a dict.' % params)
                     kwargs.update(params)
-                    method(*args, **kwargs)
+                    func(*args, **kwargs)
                 return
             if dict_of_lists:
                 values_list = dict_of_lists.values()
@@ -42,7 +42,7 @@ def data_driven(*list_of_dicts, **dict_of_lists):
                 for values in zip(*values_list):
                     params = dict(zip(keys, values))
                     kwargs.update(params)
-                    method(*args, **kwargs)
+                    func(*args, **kwargs)
                 return
         return wrapper
     return decorator
@@ -54,8 +54,8 @@ def multi_threading_data_driven(max_workers, *list_of_dicts, **dict_of_lists):
     if max_workers <= 0:
         raise ValueError('max_workers <= 0.')
 
-    def decorator(method):
-        @wraps(method)
+    def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             if list_of_dicts:
                 for params in list_of_dicts:
@@ -65,7 +65,7 @@ def multi_threading_data_driven(max_workers, *list_of_dicts, **dict_of_lists):
                     futures = []
                     for params in list_of_dicts:
                         kwargs.update(params)
-                        futures.append(executor.submit(_fn_with_traceback, method, *args, **kwargs))
+                        futures.append(executor.submit(_fn_with_traceback, func, *args, **kwargs))
                     _handle_futures(futures)
                 return
             if dict_of_lists:
@@ -80,7 +80,7 @@ def multi_threading_data_driven(max_workers, *list_of_dicts, **dict_of_lists):
                     for values in values_groups:
                         params = dict(zip(keys, values))
                         kwargs.update(params)
-                        futures.append(executor.submit(_fn_with_traceback, method, *args, **kwargs))
+                        futures.append(executor.submit(_fn_with_traceback, func, *args, **kwargs))
                     _handle_futures(futures)
                 return
         return wrapper
