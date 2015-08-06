@@ -65,8 +65,8 @@ class DefaultTestLoader:
         parent = None
         for part in name_parts[1:]:
             parent, obj = obj, getattr(obj, part)
-        if not isinstance(obj, types.FunctionType):
-            raise TypeError
+        if not isinstance(obj, types.FunctionType) and not isinstance(obj, types.MethodType):
+            raise TypeError('%r is neither %r nor %r' % (obj, types.FunctionType, types.MethodType))
         # filter out class if it is not unittest.TestCase subclass
         elif isinstance(parent, type) and issubclass(parent, self._case_class):
             name = name_parts[-1]
