@@ -36,7 +36,7 @@ contexts = ContextManager()
 
 
 def get_module_name(obj):
-    return inspect.getsourcefile(type(obj)).split(sep)[-1][:-3]
+    return inspect.getsourcefile(type(obj)).split(sep)[-1].rstrip('.py')
 
 
 def get_long_class_name(obj):

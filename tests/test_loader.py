@@ -28,7 +28,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
         self.assertEqual(suite_dict['my_suite_1']['package'], 'tests.mock1')
         loader = unittest.TestLoader()
         exp_suite = unittest.TestSuite()
@@ -55,7 +55,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     def test_exclude_classes(self):
         dict_conf = {
@@ -76,7 +76,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
         loader = unittest.TestLoader()
         exp_suite = unittest.TestSuite()
         exp_suite.addTest(loader.loadTestsFromName('MyTestClass2', module=test_module1))
@@ -104,7 +104,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_exclude_non_existing_class(self):
@@ -126,7 +126,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     def test_exclude_methods_from_module(self):
         dict_conf = {
@@ -147,7 +147,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
         loader = unittest.TestLoader()
         exp_suite = unittest.TestSuite()
         exp_suite.addTest(loader.loadTestsFromNames(['MyTestClass1.test_2',
@@ -176,7 +176,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_exclude_non_existing_method_from_module_1(self):
@@ -195,7 +195,7 @@ class LoaderTestCase(unittest.TestCase):
                 }
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_exclude_non_existing_method_from_module_2(self):
@@ -217,7 +217,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_exclude_non_existing_method_from_module_3(self):
@@ -239,7 +239,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_missing_keyword_modules(self):
@@ -260,7 +260,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     def test_load_classes(self):
         dict_conf = {
@@ -280,7 +280,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
         loader = unittest.TestLoader()
         exp_suite = unittest.TestSuite()
         exp_suite.addTest(loader.loadTestsFromName('MyTestClass1', module=test_module1))
@@ -307,7 +307,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     def test_load_non_existing_class(self):
         dict_conf = {
@@ -327,7 +327,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
         logger.info(suite_dict['my_suite_1']['suite'])
         self.assertEqual(suite_dict['my_suite_1']['suite'].countTestCases(), 0)
 
@@ -351,7 +351,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
         loader = unittest.TestLoader()
         exp_suite = unittest.TestSuite()
         exp_suite.addTest(loader.loadTestsFromName('MyTestClass3', module=test_module2))
@@ -379,7 +379,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_exclude_non_existing_method_from_class_1(self):
@@ -402,7 +402,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_exclude_non_existing_method_from_class_2(self):
@@ -425,7 +425,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_exclude_non_existing_method_from_class_3(self):
@@ -447,7 +447,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_missing_keyword_classes(self):
@@ -468,7 +468,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     def test_load_methods(self):
         dict_conf = {
@@ -488,7 +488,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
         logger.info(suite_dict['my_suite_1']['suite'])
         self.assertEqual(suite_dict['my_suite_1']['suite'].countTestCases(), 2)
 
@@ -511,7 +511,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_load_non_existing_methods_1(self):
@@ -532,7 +532,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_load_non_existing_methods_2(self):
@@ -553,7 +553,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_invalid_granularity(self):
@@ -574,7 +574,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_missing_keyword_methods(self):
@@ -595,7 +595,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     def test_load_multi_suites_and_groups(self):
         dict_conf = {
@@ -631,7 +631,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1', 'my_suite_2']
             }
         }
-        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
         loader = unittest.TestLoader()
         exp_suite1 = unittest.TestSuite()
         exp_suite1.addTest(loader.loadTestsFromName('MyTestClass1.test_1', module=test_module1))
@@ -680,7 +680,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
         loader = unittest.TestLoader()
         exp_suite = unittest.TestSuite()
         exp_suite.addTest(loader.loadTestsFromName('MyTestClass1.test_1', module=test_module1))
@@ -705,7 +705,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': []
             }
         }
-        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
         self.assertDictEqual(suite_dict, {})
 
     def test_empty_suite_2(self):
@@ -726,7 +726,7 @@ class LoaderTestCase(unittest.TestCase):
                 'suites': ['my_suite_1']
             }
         }
-        suite_dict = self.loader.load_test_from_dict(dict_conf)
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
         self.assertEqual(suite_dict['my_suite_1']['suite'].countTestCases(), 0)
 
     @unittest.expectedFailure
@@ -745,7 +745,7 @@ class LoaderTestCase(unittest.TestCase):
                 }
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
     @unittest.expectedFailure
     def test_missing_keyword_suites(self):
@@ -767,7 +767,7 @@ class LoaderTestCase(unittest.TestCase):
                 'max_workers': 10
             }
         }
-        self.loader.load_test_from_dict(dict_conf)
+        self.loader.load_tests_from_dict(dict_conf)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

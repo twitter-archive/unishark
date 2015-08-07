@@ -355,7 +355,7 @@ if __name__ == '__main__':
     dict_conf = None
     with open('your_yaml_config_file', 'r') as f:
         dict_conf = yaml.load(f.read())  # use a 3rd party yaml parser, e.g., PyYAML
-    suites = unishark.DefaultTestLoader(method_prefix='test').load_test_from_dict(dict_conf)
+    suites = unishark.DefaultTestLoader(method_prefix='test').load_tests_from_dict(dict_conf)
     for suite_name, suite_content in suites.items():
         package_name = suite_content['package']
         suite = suite_content['suite']

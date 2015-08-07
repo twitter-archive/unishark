@@ -32,7 +32,7 @@ class MyTestClass3(unittest.TestCase):
         self.assertEqual(1, 1)
 
 
-class MyTestClass4(unittest.TestCase):
+class MyTestClass4(MyTestClass3):
     @unittest.expectedFailure
     def test_8(self):
         """Here is test_8's doc str"""
@@ -56,6 +56,9 @@ class MyTestClass4(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
+    # unittest loader will load test_5, test_6, test_7 for MyTestClass4 since it inherits MyTestClass3
+    # while unishark does not load them.
+    # suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
+    suite = unishark.DefaultTestLoader().load_tests_from_package('example', 'test_module2\.\w+\.test\w*')
     reporter = unishark.HtmlReporter(dest='log')
     unishark.BufferedTestRunner(reporters=[reporter]).run(suite, name='mytest2', max_workers=2)

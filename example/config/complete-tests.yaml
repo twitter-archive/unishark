@@ -44,4 +44,4 @@ test:
   suites: [suite_name_1, suite_name_2]
   max_workers: 2
   reporters: [html, xunit]
-  method_prefix: 'test'
+  name_pattern: '^test\w*'

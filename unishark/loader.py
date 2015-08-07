@@ -17,49 +17,96 @@ import unittest
 import pyclbr
 import logging
 import types
+import re
 
 log = logging.getLogger(__name__)
 
 
 class DefaultTestLoader:
-    def __init__(self, method_prefix='test'):
+    def __init__(self, name_pattern=None):
         self._name_tree = None
         self._case_class = unittest.TestCase
         self._suite_class = unittest.TestSuite
-        self.method_prefix = method_prefix
+        self._full_mth_names_by_pkg = dict()
+        self.name_pattern = name_pattern or r'^test\w*'
 
-    def load_test_from_dict(self, dict_conf):
+    def load_tests_from_dict(self, dict_conf):
         suites_dict = dict()
         for suite_name, content in self._parse_tests_from_dict(dict_conf).items():
             package = content['package']
             test_case_names = content['test_case_names']
-            if not test_case_names:
+            suite = self.load_tests_from_full_names(test_case_names)
+            if suite.countTestCases() <= 0:
                 log.warning('Test suite %r is empty.' % suite_name)
             suites_dict[suite_name] = {
                 'package': package,
-                'suite': self.load_tests_from_full_names(test_case_names),
+                'suite': suite,
                 'max_workers': content['max_workers']
             }
             log.info('Created test suite %r successfully from package %r.' % (suite_name, package))
-            log.debug('Created test suite: %r' % suites_dict[suite_name])
         return suites_dict
 
-    def load_tests_from_full_names(self, names):
-        cases = list(filter(lambda x: x is not None, [self._make_case_from_full_name(name) for name in names]))
-        log.info('Loaded %d tests.' % len(cases))
-        return self._suite_class(cases)
+    def load_tests_from_full_names(self, full_names):
+        """
+        Returns a unittest.TestSuite instance containing the tests
+        whose full name is given and short method name matches name_pattern.
+        A full name is a dotted name like (package.)module.class.method
+        """
+        full_names = self._filter_tests_by_name_filter(full_names)
+        return self._make_suite_from_full_names(full_names)
 
-    def _make_case_from_full_name(self, name):
-        name_parts = name.split('.')
+    def load_tests_from_package(self, pkg_name, regex=None):
+        """
+        Returns a unittest.TestSuite instance containing the tests
+        whose dotted long name module.class.method matches the given regular expression
+        and short method name matches name_pattern.
+        A dotted package name must be provided.
+        """
+        full_names = self._find_full_method_names_in_package(pkg_name, regex=regex)
+        full_names = self._filter_tests_by_name_filter(full_names)
+        return self._make_suite_from_full_names(full_names)
+
+    def _find_full_method_names_in_package(self, pkg_name, regex=None):
+        import pkgutil
+        if not pkg_name:
+            raise ValueError('A dotted name of package must be provided.')
+        if pkg_name in self._full_mth_names_by_pkg:
+            full_names = self._full_mth_names_by_pkg[pkg_name]
+        else:
+            pkg = __import__(pkg_name)
+            members = pkgutil.iter_modules(pkg.__path__)
+            mod_names = []
+            for _, mod_name, is_pkg in members:
+                if not is_pkg:
+                    mod_names.append(mod_name)
+            self._build_name_tree(pkg_name, mod_names)
+            full_names = self._get_full_method_names_from_tree(pkg_name)
+            self._full_mth_names_by_pkg[pkg_name] = full_names
+        regex = regex or r'\w+\.\w+\.test\w*'
+        fn = lambda n: re.match(regex, n.lstrip(pkg_name+'.'))
+        return list(filter(fn, full_names))
+
+    def _filter_tests_by_name_filter(self, full_names):
+        return list(filter(lambda n: re.match(self.name_pattern, n.split('.')[-1]), full_names))
+
+    def _make_suite_from_full_names(self, full_names):
+        cases = list(filter(lambda c: c is not None, [self._make_case_from_full_name(name) for name in full_names]))
+        suite = self._suite_class(cases)
+        log.info('Loaded %d test(s).' % suite.countTestCases())
+        log.debug('Loaded test(s): %r' % suite)
+        return suite
+
+    def _make_case_from_full_name(self, full_name):
+        name_parts = full_name.split('.')
         mod = None
-        mod_name_parts = name_parts[:]
-        while mod_name_parts:
+        importable_parts = name_parts[:]
+        while importable_parts:
             try:
-                mod = __import__('.'.join(mod_name_parts))
+                mod = __import__('.'.join(importable_parts))
                 break
             except ImportError:
-                del mod_name_parts[-1]
-                if not mod_name_parts:
+                del importable_parts[-1]
+                if not importable_parts:
                     raise
         obj = mod
         parent = None
@@ -118,11 +165,15 @@ class DefaultTestLoader:
                     long_mth_names = set(long_mth_names)
                     for long_mth_name in long_mth_names:
                         self.__class__._get_mth_name_parts(long_mth_name)
-                    full_mth_names = list(map(lambda x: '.'.join((pkg_name, x)), long_mth_names)) \
+                    full_mth_names = list(map(lambda n: '.'.join((pkg_name, n)), long_mth_names)) \
                         if pkg_name else long_mth_names
                     test_cases_names.extend(full_mth_names)
+                elif gran == 'regex':
+                    pattern = group['pattern']
+                    full_mth_names = self._find_full_method_names_in_package(pkg_name, regex=pattern)
+                    test_cases_names.extend(full_mth_names)
                 else:
-                    raise ValueError('Granularity must be in %r.' % ['module', 'class', 'method'])
+                    raise ValueError('Granularity must be one of %r.' % ['module', 'class', 'method', 'regex'])
             max_workers = int(suite['max_workers']) if 'max_workers' in suite else 1
             res_suites[suite_name] = {
                 'package': pkg_name or 'None',
@@ -170,11 +221,10 @@ class DefaultTestLoader:
                 classes[name] = obj
         return classes
 
-    def _get_method_names_by_class(self, cls):
+    @staticmethod
+    def _get_method_names_by_class(cls):
         # cls.methods is a dict of 'method_name': method_line_no
-        method_names = sorted(cls.methods.keys(), key=lambda k: cls.methods[k])
-        # filter methods by name
-        return list(filter(lambda n: n.startswith(self.method_prefix), method_names))
+        return sorted(cls.methods.keys(), key=lambda k: cls.methods[k])
 
     # A name tree is like:
     # tree = {
@@ -203,7 +253,7 @@ class DefaultTestLoader:
                 long_cls_name = '.'.join((mod_name, cls_name))
                 if filter_cls_names and long_cls_name not in filter_cls_names:
                     continue
-                mth_names = self._get_method_names_by_class(cls)
+                mth_names = self.__class__._get_method_names_by_class(cls)
                 if not mth_names:
                     continue
                 if mod_name not in tree:

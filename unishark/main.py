@@ -34,9 +34,9 @@ class TestProgram(object):
 class DefaultTestProgram(TestProgram):
     def __init__(self, test_dict_conf, verbosity=1, descriptions=False):
         self.test_dict_conf = test_dict_conf
-        self.method_prefix = 'test'
-        if 'method_prefix' in self.test_dict_conf['test'] and self.test_dict_conf['test']['method_prefix'] is not None:
-            self.method_prefix = self.test_dict_conf['test']['method_prefix']
+        self.name_pattern = None
+        if 'name_pattern' in self.test_dict_conf['test']:
+            self.name_pattern = self.test_dict_conf['test']['name_pattern']
         self.verbosity = verbosity
         self.descriptions = descriptions
         self.reporters = self._make_reporters()
@@ -77,7 +77,7 @@ class DefaultTestProgram(TestProgram):
 
     def _run_suites_sequentially(self):
         exit_code = 0
-        suites = unishark.DefaultTestLoader(method_prefix=self.method_prefix).load_test_from_dict(self.test_dict_conf)
+        suites = unishark.DefaultTestLoader(name_pattern=self.name_pattern).load_tests_from_dict(self.test_dict_conf)
         runner = unishark.BufferedTestRunner(reporters=self.reporters,
                                              verbosity=self.verbosity,
                                              descriptions=self.descriptions)
@@ -93,7 +93,7 @@ class DefaultTestProgram(TestProgram):
 
     def _run_suites_concurrently(self, max_workers_on_suites):
         exit_code = 0
-        suites = unishark.DefaultTestLoader(method_prefix=self.method_prefix).load_test_from_dict(self.test_dict_conf)
+        suites = unishark.DefaultTestLoader(name_pattern=self.name_pattern).load_tests_from_dict(self.test_dict_conf)
         start_time = time.time()
         with concurrent.futures.ThreadPoolExecutor(max_workers_on_suites) as executor:
             futures = []

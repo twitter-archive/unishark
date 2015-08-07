@@ -28,12 +28,13 @@ class MyTestClass1(unittest.TestCase):
         sleep(1)
         log.info('user_id: %d, passwd: %s' % (param['user_id'], param['passwd']))
 
+    # unittest loader loads static methods while unishark loader does not
     @staticmethod
-    def test_something():
+    def test_static():
         assert 1 == 2
 
 
-class MyTestClass2(MyTestClass1):
+class MyTestClass2(unittest.TestCase):
     @unittest.skip('Here is the reason of skipping test_3')
     def test_3(self):
         """Here is test_3's doc str"""
