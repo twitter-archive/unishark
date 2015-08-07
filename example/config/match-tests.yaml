@@ -2,18 +2,18 @@ version: 1
 
 suites:
   suite_name_1:
-    max_workers: 6
+    max_workers: 3
     package: example
     groups:
       group1:
-        granularity: regex
-        pattern: '^test_module[1-3]{1}\.[a-zA-Z]+[1-6]{1}\.\w+'
+        granularity: package
+        pattern: '^test_module[1-2]{1}\.[a-zA-Z]+[1-3]{1}\.\w+'
   suite_name_2:
     max_workers: 2
     package: example
     groups:
       group1:
-        granularity: regex
+        granularity: package
         pattern: '^test_module3\.[a-zA-Z]+[7|8]{1}\.\w+'
 reporters:
   html:

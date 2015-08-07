@@ -56,9 +56,9 @@ class MyTestClass4(MyTestClass3):
 
 
 if __name__ == '__main__':
-    # unittest loader will load test_5, test_6, test_7 for MyTestClass4 since it inherits MyTestClass3
-    # while unishark does not load them.
+    # unittest loader will load test_5, test_6, test_7 for MyTestClass4 since it inherits MyTestClass3,
+    # while unishark does not load test methods inherited from super class.
     # suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
-    suite = unishark.DefaultTestLoader().load_tests_from_package('example', 'test_module2\.\w+\.test\w*')
+    suite = unishark.DefaultTestLoader().load_tests_from_modules(['example.test_module2'], regex='\w+4\.test\w*')
     reporter = unishark.HtmlReporter(dest='log')
-    unishark.BufferedTestRunner(reporters=[reporter]).run(suite, name='mytest2', max_workers=2)
+    unishark.BufferedTestRunner(reporters=[reporter], verbosity=2).run(suite, name='mytest2', max_workers=2)

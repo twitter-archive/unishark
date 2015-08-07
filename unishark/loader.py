@@ -49,10 +49,10 @@ class DefaultTestLoader:
     def load_tests_from_full_names(self, full_names):
         """
         Returns a unittest.TestSuite instance containing the tests
-        whose full name is given and short method name matches name_pattern.
+        whose full name is given and short method name filtered by name_pattern.
         A full name is a dotted name like (package.)module.class.method
         """
-        full_names = self._filter_tests_by_name_filter(full_names)
+        full_names = self._filter_tests_by_name_pattern(full_names)
         return self._make_suite_from_full_names(full_names)
 
     def load_tests_from_package(self, pkg_name, regex=None):
@@ -60,33 +60,28 @@ class DefaultTestLoader:
         Returns a unittest.TestSuite instance containing the tests
         whose dotted long name module.class.method matches the given regular expression
         and short method name matches name_pattern.
-        A dotted package name must be provided.
+        A dotted package name must be provided. regex is default to '\w+\.\w+\.test\w*'
         """
         full_names = self._find_full_method_names_in_package(pkg_name, regex=regex)
-        full_names = self._filter_tests_by_name_filter(full_names)
+        full_names = self._filter_tests_by_name_pattern(full_names)
         return self._make_suite_from_full_names(full_names)
 
-    def _find_full_method_names_in_package(self, pkg_name, regex=None):
-        import pkgutil
-        if not pkg_name:
-            raise ValueError('A dotted name of package must be provided.')
-        if pkg_name in self._full_mth_names_by_pkg:
-            full_names = self._full_mth_names_by_pkg[pkg_name]
-        else:
-            pkg = __import__(pkg_name)
-            members = pkgutil.iter_modules(pkg.__path__)
-            mod_names = []
-            for _, mod_name, is_pkg in members:
-                if not is_pkg:
-                    mod_names.append(mod_name)
-            self._build_name_tree(pkg_name, mod_names)
-            full_names = self._get_full_method_names_from_tree(pkg_name)
-            self._full_mth_names_by_pkg[pkg_name] = full_names
-        regex = regex or r'\w+\.\w+\.test\w*'
-        fn = lambda n: re.match(regex, n.lstrip(pkg_name+'.'))
-        return list(filter(fn, full_names))
+    def load_tests_from_modules(self, mod_names, regex=None):
+        """
+        Returns a unittest.TestSuite instance containing the tests
+        whose dotted long name class.method matches the given regular expression
+        and short method name matches name_pattern.
+        A list of dotted module names must be provided. regex is default to '\w+\.test\w*'
+        """
+        if not mod_names:
+            raise ValueError('A list of dotted module names must be provided.')
+        for mod_name in mod_names:
+            __import__(mod_name)
+        full_names = self._find_full_method_names_from_modules(None, mod_names, regex=regex)
+        full_names = self._filter_tests_by_name_pattern(full_names)
+        return self._make_suite_from_full_names(full_names)
 
-    def _filter_tests_by_name_filter(self, full_names):
+    def _filter_tests_by_name_pattern(self, full_names):
         return list(filter(lambda n: re.match(self.name_pattern, n.split('.')[-1]), full_names))
 
     def _make_suite_from_full_names(self, full_names):
@@ -140,49 +135,88 @@ class DefaultTestLoader:
                 if 'disable' in group and group['disable']:
                     continue
                 gran = group['granularity']
-                if gran == 'module':
-                    mod_names = group['modules']
-                    mod_names = set(mod_names)
-                    self._build_name_tree(pkg_name, mod_names)
-                    if 'except_classes' in group:
-                        self._del_except_classes_in_name_tree(group['except_classes'])
-                    if 'except_methods' in group:
-                        self._del_except_methods_in_name_tree(group['except_methods'])
-                    test_cases_names.extend(self._get_full_method_names_from_tree(pkg_name))
-                elif gran == 'class':
-                    long_cls_names = group['classes']
-                    long_cls_names = set(long_cls_names)
-                    mod_names = set()
-                    for long_cls_name in long_cls_names:
-                        mod_name, _ = self.__class__._get_cls_name_parts(long_cls_name)
-                        mod_names.add(mod_name)
-                    self._build_name_tree(pkg_name, mod_names, filter_cls_names=long_cls_names)
-                    if 'except_methods' in group:
-                        self._del_except_methods_in_name_tree(group['except_methods'])
-                    test_cases_names.extend(self._get_full_method_names_from_tree(pkg_name))
-                elif gran == 'method':
-                    long_mth_names = group['methods']
-                    long_mth_names = set(long_mth_names)
-                    for long_mth_name in long_mth_names:
-                        self.__class__._get_mth_name_parts(long_mth_name)
-                    full_mth_names = list(map(lambda n: '.'.join((pkg_name, n)), long_mth_names)) \
-                        if pkg_name else long_mth_names
+                if gran == 'package':
+                    full_mth_names = self._find_full_method_names_in_package(pkg_name, regex=group['pattern'])
                     test_cases_names.extend(full_mth_names)
-                elif gran == 'regex':
-                    pattern = group['pattern']
-                    full_mth_names = self._find_full_method_names_in_package(pkg_name, regex=pattern)
+                elif gran == 'module':
+                    full_mth_names = self._get_full_method_names_from_modules(pkg_name, group)
+                    test_cases_names.extend(full_mth_names)
+                elif gran == 'class':
+                    full_mth_names = self._get_full_method_names_from_classes(pkg_name, group)
+                    test_cases_names.extend(full_mth_names)
+                elif gran == 'method':
+                    full_mth_names = self._get_full_method_names_from_methods(pkg_name, group)
                     test_cases_names.extend(full_mth_names)
                 else:
-                    raise ValueError('Granularity must be one of %r.' % ['module', 'class', 'method', 'regex'])
+                    raise ValueError('Granularity must be one of %r.' % ['package', 'module', 'class', 'method'])
             max_workers = int(suite['max_workers']) if 'max_workers' in suite else 1
             res_suites[suite_name] = {
                 'package': pkg_name or 'None',
                 'test_case_names': set(test_cases_names),
-                'max_workers': max_workers
+                'max_workers': max_workers if max_workers >= 1 else 1
             }
         log.debug('Parsed test config: %r' % res_suites)
         log.info('Parsed test config successfully.')
         return res_suites
+
+    def _find_full_method_names_in_package(self, pkg_name, regex=None):
+        import pkgutil
+        if not pkg_name:
+            raise ValueError('A dotted package name must be provided.')
+        if pkg_name in self._full_mth_names_by_pkg:
+            full_names = self._full_mth_names_by_pkg[pkg_name]
+        else:
+            pkg = __import__(pkg_name)
+            members = pkgutil.iter_modules(pkg.__path__)
+            mod_names = []
+            for _, mod_name, is_pkg in members:
+                if not is_pkg:
+                    mod_names.append(mod_name)
+            self._build_name_tree(pkg_name, mod_names)
+            full_names = self._get_full_method_names_from_tree(pkg_name)
+            self._full_mth_names_by_pkg[pkg_name] = full_names
+        regex = regex or r'\w+\.\w+\.test\w*'
+        fn = lambda n: re.match(regex, n.lstrip(pkg_name+'.'))
+        return list(filter(fn, full_names))
+
+    def _find_full_method_names_from_modules(self, pkg_name, mod_names, regex=None):
+        mod_names = set(mod_names)
+        self._build_name_tree(pkg_name, mod_names)
+        full_names = self._get_full_method_names_from_tree(pkg_name)
+        regex = regex or r'\w+\.test\w*'
+        fn = lambda n: re.match(regex, '.'.join(n.split('.')[-2:]))
+        return list(filter(fn, full_names))
+
+    def _get_full_method_names_from_modules(self, pkg_name, group):
+        mod_names = group['modules']
+        mod_names = set(mod_names)
+        self._build_name_tree(pkg_name, mod_names)
+        if 'except_classes' in group:
+            self._del_except_classes_in_name_tree(group['except_classes'])
+        if 'except_methods' in group:
+            self._del_except_methods_in_name_tree(group['except_methods'])
+        return self._get_full_method_names_from_tree(pkg_name)
+
+    def _get_full_method_names_from_classes(self, pkg_name, group):
+        long_cls_names = group['classes']
+        long_cls_names = set(long_cls_names)
+        mod_names = set()
+        for long_cls_name in long_cls_names:
+            mod_name, _ = self.__class__._get_cls_name_parts(long_cls_name)
+            mod_names.add(mod_name)
+        self._build_name_tree(pkg_name, mod_names, filter_cls_names=long_cls_names)
+        if 'except_methods' in group:
+            self._del_except_methods_in_name_tree(group['except_methods'])
+        return self._get_full_method_names_from_tree(pkg_name)
+
+    def _get_full_method_names_from_methods(self, pkg_name, group):
+        long_mth_names = group['methods']
+        long_mth_names = set(long_mth_names)
+        for long_mth_name in long_mth_names:
+            self.__class__._get_mth_name_parts(long_mth_name)
+        full_mth_names = list(map(lambda n: '.'.join((pkg_name, n)), long_mth_names)) \
+            if pkg_name else long_mth_names
+        return full_mth_names
 
     @staticmethod
     def _get_cls_name_parts(long_name):
