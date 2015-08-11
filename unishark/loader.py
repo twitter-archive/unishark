@@ -60,7 +60,7 @@ class DefaultTestLoader:
         Returns a unittest.TestSuite instance containing the tests
         whose dotted long name module.class.method matches the given regular expression
         and short method name matches name_pattern.
-        A dotted package name must be provided. regex is default to '\w+\.\w+\.test\w*'
+        A dotted package name must be provided. regex is default to '(\w+\.){2}test\w*'
         """
         full_names = self._find_full_method_names_in_package(pkg_name, regex=regex)
         full_names = self._filter_tests_by_name_pattern(full_names)
@@ -136,7 +136,8 @@ class DefaultTestLoader:
                     continue
                 gran = group['granularity']
                 if gran == 'package':
-                    full_mth_names = self._find_full_method_names_in_package(pkg_name, regex=group['pattern'])
+                    pattern = group.get('pattern', None)
+                    full_mth_names = self._find_full_method_names_in_package(pkg_name, regex=pattern)
                     test_cases_names.extend(full_mth_names)
                 elif gran == 'module':
                     full_mth_names = self._get_full_method_names_from_modules(pkg_name, group)
@@ -153,7 +154,7 @@ class DefaultTestLoader:
             res_suites[suite_name] = {
                 'package': pkg_name or 'None',
                 'test_case_names': set(test_cases_names),
-                'max_workers': max_workers if max_workers >= 1 else 1
+                'max_workers': max_workers
             }
         log.debug('Parsed test config: %r' % res_suites)
         log.info('Parsed test config successfully.')
@@ -167,6 +168,10 @@ class DefaultTestLoader:
             full_names = self._full_mth_names_by_pkg[pkg_name]
         else:
             pkg = __import__(pkg_name)
+            name_parts = pkg_name.split('.')
+            if len(name_parts) > 1:
+                for part in name_parts[1:]:
+                    pkg = getattr(pkg, part)
             members = pkgutil.iter_modules(pkg.__path__)
             mod_names = []
             for _, mod_name, is_pkg in members:
@@ -175,8 +180,8 @@ class DefaultTestLoader:
             self._build_name_tree(pkg_name, mod_names)
             full_names = self._get_full_method_names_from_tree(pkg_name)
             self._full_mth_names_by_pkg[pkg_name] = full_names
-        regex = regex or r'\w+\.\w+\.test\w*'
-        fn = lambda n: re.match(regex, n.lstrip(pkg_name+'.'))
+        regex = regex or r'(\w+\.){2}test\w*'
+        fn = lambda n: re.match(regex, '.'.join(n.split('.')[-3:]))
         return list(filter(fn, full_names))
 
     def _find_full_method_names_from_modules(self, pkg_name, mod_names, regex=None):

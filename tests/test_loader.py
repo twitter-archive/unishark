@@ -769,5 +769,108 @@ class LoaderTestCase(unittest.TestCase):
         }
         self.loader.load_tests_from_dict(dict_conf)
 
+    def test_load_package(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'package': 'tests.mock1',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'package'
+                        }
+                    }
+                },
+                'my_suite_2': {
+                    'package': 'tests.mock2',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'package',
+                            'pattern': '\w+\.MyTestClass6\.test\w+[1|2]{2}'
+                        }
+                    }
+                }
+            },
+            'test': {
+                'suites': ['my_suite_1', 'my_suite_2']
+            }
+        }
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
+        self.assertEqual(suite_dict['my_suite_1']['suite'].countTestCases(), 10)
+        self.assertEqual(suite_dict['my_suite_2']['suite'].countTestCases(), 1)
+
+    def test_filtered_by_name_pattern(self):
+        self.loader = unishark.DefaultTestLoader(name_pattern='^no_such_prefix\w*')
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'package': 'tests.mock1',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'package'
+                        }
+                    }
+                },
+                'my_suite_2': {
+                    'package': 'tests.mock2',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'module',
+                            'modules': ['test_module3']
+                        },
+                        'g2': {
+                            'granularity': 'method',
+                            'methods': ['mock_module4.MyTestClass6.test_12']
+                        }
+                    }
+                }
+            },
+            'test': {
+                'suites': ['my_suite_1', 'my_suite_2']
+            }
+        }
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
+        self.assertEqual(suite_dict['my_suite_1']['suite'].countTestCases(), 0)
+        self.assertEqual(suite_dict['my_suite_2']['suite'].countTestCases(), 0)
+
+    def test_load_tests_from_package_with_default_pattern(self):
+        suite = self.loader.load_tests_from_package('tests.mock2')
+        self.assertEqual(suite.countTestCases(), 9)
+
+    def test_load_tests_from_package_with_pattern(self):
+        suite = self.loader.load_tests_from_package('tests.mock2', '^mock\w*\.\w+\.test\w*')
+        self.assertEqual(suite.countTestCases(), 2)
+        suite = self.loader.load_tests_from_package('tests.mock2', '(\w+\.){2}\w*static$')
+        self.assertEqual(suite.countTestCases(), 0)
+        suite = self.loader.load_tests_from_package('tests.mock2', '(\w+\.){2}\w*__\w+')
+        self.assertEqual(suite.countTestCases(), 0)  # filtered by name pattern
+        suite = self.loader.load_tests_from_package('tests.mock2', '\w+\.\w+5\.\w+')
+        self.assertEqual(suite.countTestCases(), 3)
+
+    def test_load_tests_from_package_no_pkg_name(self):
+        with self.assertRaises(ValueError):
+            self.loader.load_tests_from_package(None)
+
+    def test_load_tests_from_package_invalid_pkg(self):
+        with self.assertRaises(ImportError):
+            self.loader.load_tests_from_package('tests.no_such_pkg')
+
+    def test_load_tests_from_modules_with_default_pattern(self):
+        suite = self.loader.load_tests_from_modules(['tests.mock2.mock_module4', 'tests.mock1.test_module1'])
+        self.assertEqual(suite.countTestCases(), 6)
+
+    def test_load_tests_from_modules_with_pattern(self):
+        suite = self.loader.load_tests_from_modules(['tests.mock2.mock_module4', 'tests.mock2.test_module3'],
+                                                    regex='\w+5.\w+')
+        self.assertEqual(suite.countTestCases(), 3)
+
+    def test_load_tests_from_modules_no_modules(self):
+        with self.assertRaises(ValueError):
+            self.loader.load_tests_from_modules([])
+
+    def test_load_tests_from_modules_invalid_modules(self):
+        with self.assertRaises(ImportError):
+            self.loader.load_tests_from_modules(['tests.mock2.no_such_mod'])
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

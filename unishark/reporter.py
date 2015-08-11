@@ -87,9 +87,10 @@ class TestsSummary(Summary):
 
     def build(self, actual_duration=None):
         if self.suite_sum_list:
-            self.duration = sum(map(lambda s: s.duration, self.suite_sum_list))
-            if actual_duration:
+            if actual_duration is not None:
                 self.duration = actual_duration
+            else:
+                self.duration = sum(map(lambda s: s.duration, self.suite_sum_list))
             self.run = sum(map(lambda s: s.run, self.suite_sum_list))
             self.passed = sum(map(lambda s: s.passed, self.suite_sum_list))
             self.skipped = sum(map(lambda s: s.skipped, self.suite_sum_list))

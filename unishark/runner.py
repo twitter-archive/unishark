@@ -107,7 +107,7 @@ class BufferedTestResult(unittest.TextTestResult):
     def __init__(self, stream, descriptions, verbosity):
         super(BufferedTestResult, self).__init__(stream, descriptions, verbosity)
         self.buffer = False
-        # key = test class name, value = a list of results.
+        # key: module_name.class_name, value: a list of results.
         # One result is a tuple like (test method name, method doc, duration, status, output, traceback)
         self.results = dict()
         self.start_time = 0.0

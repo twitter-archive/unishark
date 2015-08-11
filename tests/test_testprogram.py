@@ -367,6 +367,54 @@ class DefaultTestProgramTestCase(TestProgramTestCase):
         self.assertEqual(exit_code, 1)
         self.assertFalse(os.path.exists(self.dest))
 
+    def test_program_with_name_pattern(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'package': 'tests.mock1',
+                    'max_workers': 4,
+                    'groups': {
+                        'g1': {
+                            'granularity': 'module',
+                            'modules': ['test_module1', 'test_module2']
+                        }
+                    }
+                },
+                'my_suite_2': {
+                    'package': 'tests.mock2',
+                    'max_workers': 4,
+                    'groups': {
+                        'g1': {
+                            'granularity': 'module',
+                            'modules': ['test_module3']
+                        }
+                    }
+                }
+            },
+            'reporters': {
+                'html': {
+                    'class': 'unishark.HtmlReporter',
+                    'kwargs': {
+                        'dest': self.dest
+                    }
+                },
+                'xunit': {
+                    'class': 'unishark.XUnitReporter',
+                    'kwargs': {
+                        'dest': self.dest
+                    }
+                }
+            },
+            'test': {
+                'suites': ['my_suite_1', 'my_suite_2'],
+                'max_workers': 2,
+                'name_pattern': '^no_such_prefix\w*'
+            }
+        }
+        program = unishark.DefaultTestProgram(dict_conf)
+        exit_code = program.run()
+        self.assertEqual(exit_code, 0)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
