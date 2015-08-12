@@ -10,6 +10,8 @@ A lightweight unittest extension (that extends unitest2)
   - <a href="#Test_Reports">Test Reports</a>
   - <a href="#Concurrent_Tests">Concurrent Tests</a>
 * <a href="#Data_Driven">Data Driven</a>
+* <a href="#Useful_API">Useful API</a>
+  - <a href="#DefaultTestLoader">DefaultTestLoader</a>
 * <a href="#Advanced_Usage">Advanced Usage</a>
 * <a href="#More_Examples">More Examples</a>
 * <a href="#User_Extension">User Extension</a>
@@ -23,11 +25,11 @@ The latest released version: https://pypi.python.org/pypi/unishark
   
 unishark extends unittest (to be more accurate, unittest2) in the following ways:
 * Customizing test suites with dictionary config (or yaml/json like config).
-* Running the tests in parallel.
+* Running the tests concurrently.
 * Generating polished test reports in HTML/XUnit formats.
 * Offering data-driven decorator to accelerate tests writing.
   
-You could acquire the first three features for your existent unittests immediately with a single config, without changing any existing code.
+For existing unittests, the first three features could be gained immediately with a single config, without changing any test code.
   
 Here is an example config in YAML format (you could also write it directly in a <code>dict()</code>):
 ```yaml
@@ -53,7 +55,15 @@ suites:
       my_group_1:
         granularity: method
         methods: [test_module3.MyTestClass6.test_13, test_module3.MyTestClass7.test_15]
-
+  my_suite_name_3:
+    package: another.package.name
+    groups:
+      group_1:
+        granularity: package
+        pattern: '(\w+\.){2}test\w*'
+        except_modules: [module1, module2]
+        except_classes: [module3.Class1, module3.Class3]
+        except_methods: [module3.Class2.test_1, module4.Class2.test_5]
 reporters:
   html:
     class: unishark.HtmlReporter
@@ -67,13 +77,13 @@ reporters:
       summary_title: 'Example Report'
 
 test:
-  suites: [my_suite_name_1, my_suite_name_2]
-  max_workers: 2
+  suites: [my_suite_name_1, my_suite_name_2, my_suite_name_3]
+  max_workers: 3
   reporters: [html, xunit]
-  method_prefix: 'test'
+  name_pattern: '^test\w*'
 ```
   
-It defines two test suites with some of the test cases excluded, and tells unishark to run the defined set of tests with multi-threads (max_workers), then generate both HTML and XUnit (default JUnit) format reports at the end of testing.
+It defines 3 test suites with some of the test cases excluded, and configures runnning the defined set of tests with multi-threads (max_workers), and generating both HTML and XUnit (default JUnit) format reports at the end of tests.
   
 To run it, simply add the following code:
 ```python
@@ -81,11 +91,10 @@ import unishark
 import yaml
 
 if __name__ == '__main__':
-    dict_conf = None
     with open('your_yaml_config_file', 'r') as f:
         dict_conf = yaml.load(f.read())  # use a 3rd party yaml parser, e.g., PyYAML
-    program = unishark.DefaultTestProgram(dict_conf)
-    unishark.main(program)
+        program = unishark.DefaultTestProgram(dict_conf)
+        unishark.main(program)
 ```
   
 And a HTML report is like:
@@ -115,38 +124,32 @@ pip install unishark
 ## The Test Config
   
 Each config must have a **test** section, which has the following keys:
-* **suites**: A list of suite names defined in **suites** section. See <a href="#Customize_Test_Suites">Customize Test Suites</a>.
-* **reporters**: A list of reporter names defined in **reporters** section. See <a href="#Test_Reports">Test Reports</a>.
-* **max_workers**: The max number of threads used to run the test suites. Default is 1 if not set. See <a href="#Concurrent_Tests">Concurrent Tests</a>.
-* **method_prefix**: The prefix of the method names used to filter test cases when loading them. Default 'test' if not set. If it is set to '', there will be no filter.
+* **test['suites']**: Required. A list of suite names defined in **suites** section. See <a href="#Customize_Test_Suites">Customize Test Suites</a>.
+* **test['reporters']**: Optional. A list of reporter names defined in **reporters** section. See <a href="#Test_Reports">Test Reports</a>.
+* **test['max_workers']**: Optional. The max number of threads used to run the test suites. Default is 1 if not set. See <a href="#Concurrent_Tests">Concurrent Tests</a>.
+* **test['name_pattern']**: Optional. A python regular expression to match the test method names. All the tests whose method name does not match the pattern will be filtered out. Default **'^test\w*'** if not set.
   
 <a name="Customize_Test_Suites"></a>
 ### Customize Test Suites
   
 This part describes **suites** section in the test config, with the example in <a href="#Overview">Overview</a>:
 * Name of a suite or a group could be anything you like.
-* **package**: A dotted path (relative to PYTHONPATH) indicating the python package where your test .py files locate. The tests in one suite have to be in the same package. To collect tests in another package, define another suite. However tests in one package can be divided into several suites.
-* **granularity**: One of 'module', 'class' and 'method'.
-* **modules**: A list of module names (test file names with .py trimmed). Only takes effect when granularity is 'module'.
-* **classes**: A list of dotted class names conforming to 'module.class'. Only takes effect when granularity is 'class'.
-* **methods**: A list of dotted method names conforming to 'module.class.method'. Only takes effect when granularity is 'method'.
-* **except_classes**: A list of excluded class names conforming to 'module.class'. Only takes effect when granularity is 'module'.
-* **except_methods**: A list of excluded methods names conforming to 'module.class.method'. Only takes effect when granularity is 'module' or 'class'.
-* **max_workers**: The max number of threads used to run the test cases within a suite. Default is 1 if not set. See <a href="#Concurrent_Tests">Concurrent Tests</a>.
+* **suites[\<suite name\>]['package']**: Optional. A dotted path (relative to PYTHONPATH) indicating the python package where your test .py files locate. The tests in one suite have to be in the same package. To collect tests in another package, define another suite. However tests in one package can be divided into several suites.
+* **suites[\<suite name\>]['max_workers']**: Optional. The max number of threads used to run the test cases within a suite. Default is 1 if not set. See <a href="#Concurrent_Tests">Concurrent Tests</a>.
+* **suites[\<suite name\>]['groups'][\<group name\>]['granularity']**: Required. Must be one of 'package', 'module', 'class' and 'method'. If granularity is 'package', then suites[\<suite name\>]['package'] must be given.
+* **suites[\<suite name\>]['groups'][\<group name\>]['pattern']**: Optional. Only takes effect when granularity is 'package'. A python regular expression to match tests long names like 'module.class.method' in the package. Default is **'(\w+\\.){2}test\w*'** if not set.
+* **suites[\<suite name\>]['groups'][\<group name\>]['modules']**: Required if granularity is 'module'. A list of module names (test file names with .py trimmed).
+* **suites[\<suite name\>]['groups'][\<group name\>]['classes']**: Required if granularity is 'class'. A list of dotted class names conforming to 'module.class'.
+* **suites[\<suite name\>]['groups'][\<group name\>]['methods']**: Required if granularity is 'method'. A list of dotted method names conforming to 'module.class.method'.
+* **suites[\<suite name\>]['groups'][\<group name\>]['except_modules']**: Optional. Only takes effect when granularity is 'package'. A list of excluded module names.
+* **suites[\<suite name\>]['groups'][\<group name\>]['except_classes']**: Optional. Only takes effect when granularity is 'package' or 'module'. A list of excluded class names conforming to 'module.class'. 
+* **suites[\<suite name\>]['groups'][\<group name\>]['except_methods']**: Optional. Only takes effect when granularity is 'package', 'module' or 'class'. A list of excluded method names conforming to 'module.class.method'.
+* **suites[\<suite name\>]['groups'][\<group name\>]['disable']**: Optional. Excludes the group of tests if the value is True. Default is False if not set.
   
-To temporarily exclude a group of tests, set boolean attribute 'disable' to True (default False if not set) in a group config:
-```yaml
-suites:
-  ...
-    ...
-      my_group_1:
-        disable: True
-```
-  
-To include/exclude a suite, add/remove the suite name in/from the **suites** list in the **test** section:
+To include/exclude a suite, add/remove the suite name in/from the **test['suites']** list in the **test** section:
 ```yaml
 test:
-  suites: [my_suite_1] # will not run my_suite_2
+  suites: [my_suite_1] # will only run my_suite_1
   ...
 ```
   
@@ -154,21 +157,37 @@ test:
 ### Test Reports
   
 This part describes the **reporters** section in the test config, with the example in <a href="#Overview">Overview</a>:
-* **class**: A dotted reporter class name.
-* **kwargs**: The arguments for initiating the reporter instance.
+* **reporters['class']**: Required if a reporter is defined. A dotted reporter class name.
+* **reporters['kwargs']**: Optional. The arguments for initiating the reporter instance.
   
-You could define multiple reporters and use all of them to generate different formats of reports for a single run of the tests.
+The arguments of the built-in HtmlReporter and their default values are:
+* dest='results'
+* overview_title='Reports'
+* overview_description=''
+* templates_path=None
+* report_template=None
+* overview_template=None
+* index_template=None
   
-To include/exclude a reporter, add/remove the reporter name in/from the **reporters** list in the **test** section:
+The arguments of the built-in XUnitReporter and their default values are:
+* dest='results'
+* summary_title='XUnit Reports'
+* templates_path=None
+* report_template=None
+* summary_template=None
+  
+Configuring multiple reporters which generate different formats of reports is allowed, and only a single run of the tests is needed to generate all different formats.
+  
+To include/exclude a reporter, add/remove the reporter name in/from the **test['reporters']** list in the **test** section:
 ```yaml
 test:
-  reporters: [html] # will not generate xunit format reports
+  reporters: [html] # will only generate html format reports
   ...
 ```
   
 If the list is empty, no report files will be generated.
   
-unishark can buffer logging stream during the running of a test case, and writes all buffered output to report files at the end of testing. To let unishark capture the logging stream and write logs into reports, simply redirect the logging stream to <code>unishark.out</code>, e.g.,
+unishark can buffer logging stream during the running of a test case, and writes all buffered output to report files at the end of tests. To let unishark capture the logging stream and write logs into reports, simply redirect the logging stream to <code>unishark.out</code>, e.g.,
 ```python
 formatter = logging.Formatter('%(levelname)s: %(message)s')
 handler = logging.StreamHandler(stream=unishark.out)
@@ -223,11 +242,12 @@ test:
 ```
   
 **NOTE**: 
-* Currently only multi-threading is supported, not multi-processing. Multi-threading concurrency will significantly shorten the running time of I/O bound tests (which many practical cases are, e.g., http requests). But it is not so useful when the tests are CPU bound.
+* Currently only multi-threading is supported, not multi-processing. Multi-threading concurrency will significantly shorten the running time of I/O bound tests (which many practical cases are, e.g., http requests). But it is not so useful when the tests are CPU bound due to python's GIL.
 * The smallest granularity of the concurrency is class, not method (this is to make sure <code>setUpClass()</code> and <code>tearDownClass()</code> is executed once for each class, unfortunately). This means test cases in the same class are always executed sequentially, and test cases from the different classes might be executed concurrently.
-* It is user's responsibility to make sure the test cases are thread-safe before enabling the concurrent tests. For example, It is dangerous for any method, including <code>setUpClass()</code>/<code>tearDownClass()</code> and <code>setUp()</code>/<code>tearDown()</code>, to modify a cross-classes shared resource, while it is OK for them to modify a class-scope shared resource.
+* It is user's responsibility to make sure the test cases are thread-safe before enabling the concurrent tests. For example, Race conditions will occur if any method, including <code>setUpClass()</code>/<code>tearDownClass()</code> and <code>setUp()</code>/<code>tearDown()</code>, tries to modify a cross-classes shared resource, while trying to modify a class-scope shared resource is thread-safe.
 * Technically one can split a class into two suites (by loading test cases with 'method' granularity), and run the methods in the same class concurrently by running the two suites concurrently (but why would you do that?). In this case, <code>setUpClass()</code>/<code>tearDownClass()</code> will be executed twice for the same class, and modifying a class-scope shared resource might be a problem.
-* To achieve full concurrency, set 'max_workers' >= number of classes within a suite and set 'max_workers' >= number of suites in the **test** section.
+* If <code>setUpModule()</code>/<code>tearDownModule()</code> is defined in a module and the module has more than one test classes in it, enabling concurrency at class level will cause <code>setUpModule()</code>/<code>tearDownModule()</code> being executed multiple times.
+* To achieve full concurrency, set suites[\<suite name\>]['max_workers'] >= number of classes within a suite and set test['max_workers'] >= number of test['suites'].
 * If 'max_workers' is not set or its value <= 1, it is just sequential running.
 
 <a name="Data_Driven"></a>
@@ -317,10 +337,21 @@ It takes about 2 sec in total (10 sec if using <code>unishark.data_driven</code>
 If exceptions are thrown in one or more threads, the exceptions information will be collected and summarized in the "main" thread and thrown as <code>unishark.exception.MultipleErrors</code>.
   
 
+<a name="Useful_API"></a>
+## Useful API
+  
+<a name="DefaultTestLoader"></a>
+### DefaultTestLoader
+  
+* **load_tests_from_dict(dict_conf)**: Loads tests from a dictionary config described in <a href="#The_Test_Config">The Test Config</a>. Returns a suites dictionary with suite names as keys.
+* **load_tests_from_package(pkg_name, regex=None)**: Returns a unittest.TestSuite instance containing the tests whose dotted long name 'module.class.method' matches the given regular expression and short method name matches DefaultTestLoader.name_pattern. A dotted package name must be provided. regex is default to '(\w+\\.){2}test\w*'.
+* **load_tests_from_modules(mod_names, regex=None)**: Returns a unittest.TestSuite instance containing the tests whose dotted name 'class.method' matches the given regular expression and short method name matches DefaultTestLoader.name_pattern. A list of dotted module names must be provided. regex is default to '\w+\\.test\w*'.
+  
+
 <a name="Advanced_Usage"></a>
 ## Advanced Usage
   
-unishark is fully compatible with unittest because it is extended from unittest. Here are some examples of mixed use of the two:
+unishark is fully compatible with unittest because it extends unittest. Here are some examples of mixed use of the two:
 
 Run unittest suite with <code>unishark.BufferedTestRunner</code>: 
 ```python
@@ -355,7 +386,7 @@ if __name__ == '__main__':
     dict_conf = None
     with open('your_yaml_config_file', 'r') as f:
         dict_conf = yaml.load(f.read())  # use a 3rd party yaml parser, e.g., PyYAML
-    suites = unishark.DefaultTestLoader(method_prefix='test').load_tests_from_dict(dict_conf)
+    suites = unishark.DefaultTestLoader(name_pattern='^test\w*').load_tests_from_dict(dict_conf)
     for suite_name, suite_content in suites.items():
         package_name = suite_content['package']
         suite = suite_content['suite']
@@ -400,7 +431,7 @@ reporters:
 * The customized templates must also be <a href="http://jinja.pocoo.org/docs/dev/templates">Jinja2</a> templates
 * Once you decide to use your own templates, you have to specify all of the 'teamplates_path' and '*_template' arguments. If one of them is None or empty, the reporters will still use the default templates carried with unishark.
   
-If the above customization cannot satisfy you, you could write your own reporter class extending <code>unishark.Reporter</code> abstract class. Either passing the reporter instance to <code>unishark.BufferedTestRunner</code> or configuring the initiating in the test config will make unishark run your reporter.
+If the above customization cannot satisfy you, you could write your own reporter class extending <code>unishark.Reporter</code> abstract class. Either passing the reporter instance to <code>unishark.BufferedTestRunner</code> or configuring the constructor in the test config will make unishark run your reporter.
   
 <a name="Implement_TestProgram"></a>
 ### Implement TestProgram
