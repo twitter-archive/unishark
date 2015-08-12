@@ -27,8 +27,10 @@ class DefaultTestLoader:
         self._name_tree = None
         self._case_class = unittest.TestCase
         self._suite_class = unittest.TestSuite
-        self._full_mth_names_by_pkg = dict()
+        self._name_trees_by_pkg = dict()
         self.name_pattern = name_pattern or r'^test\w*'
+        self.one_dot_name_pattern = r'\w+\.test\w*'
+        self.two_dots_name_pattern = r'(\w+\.){2}test\w*'
 
     def load_tests_from_dict(self, dict_conf):
         suites_dict = dict()
@@ -62,7 +64,9 @@ class DefaultTestLoader:
         and short method name matches name_pattern.
         A dotted package name must be provided. regex is default to '(\w+\.){2}test\w*'
         """
-        full_names = self._find_full_method_names_in_package(pkg_name, regex=regex)
+        self._build_pkg_name_tree(pkg_name)
+        full_names = self._get_full_method_names_from_tree(pkg_name)
+        full_names = self._filter_tests_by_two_dots_name_pattern(full_names, regex=regex)
         full_names = self._filter_tests_by_name_pattern(full_names)
         return self._make_suite_from_full_names(full_names)
 
@@ -73,16 +77,22 @@ class DefaultTestLoader:
         and short method name matches name_pattern.
         A list of dotted module names must be provided. regex is default to '\w+\.test\w*'
         """
-        if not mod_names:
-            raise ValueError('A list of dotted module names must be provided.')
-        for mod_name in mod_names:
-            __import__(mod_name)
-        full_names = self._find_full_method_names_from_modules(None, mod_names, regex=regex)
+        self._build_name_tree(None, set(mod_names))
+        full_names = self._get_full_method_names_from_tree(None)
+        full_names = self._filter_tests_by_one_dot_name_pattern(full_names, regex=regex)
         full_names = self._filter_tests_by_name_pattern(full_names)
         return self._make_suite_from_full_names(full_names)
 
     def _filter_tests_by_name_pattern(self, full_names):
         return list(filter(lambda n: re.match(self.name_pattern, n.split('.')[-1]), full_names))
+
+    def _filter_tests_by_one_dot_name_pattern(self, full_names, regex=None):
+        regex = regex or self.one_dot_name_pattern
+        return list(filter(lambda n: re.match(regex, '.'.join(n.split('.')[-2:])), full_names))
+
+    def _filter_tests_by_two_dots_name_pattern(self, full_names, regex=None):
+        regex = regex or self.two_dots_name_pattern
+        return list(filter(lambda n: re.match(regex, '.'.join(n.split('.')[-3:])), full_names))
 
     def _make_suite_from_full_names(self, full_names):
         cases = list(filter(lambda c: c is not None, [self._make_case_from_full_name(name) for name in full_names]))
@@ -136,8 +146,7 @@ class DefaultTestLoader:
                     continue
                 gran = group['granularity']
                 if gran == 'package':
-                    pattern = group.get('pattern', None)
-                    full_mth_names = self._find_full_method_names_in_package(pkg_name, regex=pattern)
+                    full_mth_names = self._get_full_method_names_from_package(pkg_name, group)
                     test_cases_names.extend(full_mth_names)
                 elif gran == 'module':
                     full_mth_names = self._get_full_method_names_from_modules(pkg_name, group)
@@ -160,12 +169,13 @@ class DefaultTestLoader:
         log.info('Parsed test config successfully.')
         return res_suites
 
-    def _find_full_method_names_in_package(self, pkg_name, regex=None):
+    def _build_pkg_name_tree(self, pkg_name):
         import pkgutil
+        import copy
         if not pkg_name:
             raise ValueError('A dotted package name must be provided.')
-        if pkg_name in self._full_mth_names_by_pkg:
-            full_names = self._full_mth_names_by_pkg[pkg_name]
+        if pkg_name in self._name_trees_by_pkg:
+            self._name_tree = copy.deepcopy(self._name_trees_by_pkg[pkg_name])
         else:
             pkg = __import__(pkg_name)
             name_parts = pkg_name.split('.')
@@ -178,19 +188,19 @@ class DefaultTestLoader:
                 if not is_pkg:
                     mod_names.append(mod_name)
             self._build_name_tree(pkg_name, mod_names)
-            full_names = self._get_full_method_names_from_tree(pkg_name)
-            self._full_mth_names_by_pkg[pkg_name] = full_names
-        regex = regex or r'(\w+\.){2}test\w*'
-        fn = lambda n: re.match(regex, '.'.join(n.split('.')[-3:]))
-        return list(filter(fn, full_names))
+            self._name_trees_by_pkg[pkg_name] = copy.deepcopy(self._name_tree)
 
-    def _find_full_method_names_from_modules(self, pkg_name, mod_names, regex=None):
-        mod_names = set(mod_names)
-        self._build_name_tree(pkg_name, mod_names)
+    def _get_full_method_names_from_package(self, pkg_name, group):
+        self._build_pkg_name_tree(pkg_name)
+        if 'except_modules' in group:
+            self._del_except_modules_in_name_tree(group['except_modules'])
+        if 'except_classes' in group:
+            self._del_except_classes_in_name_tree(group['except_classes'])
+        if 'except_methods' in group:
+            self._del_except_methods_in_name_tree(group['except_methods'])
         full_names = self._get_full_method_names_from_tree(pkg_name)
-        regex = regex or r'\w+\.test\w*'
-        fn = lambda n: re.match(regex, '.'.join(n.split('.')[-2:]))
-        return list(filter(fn, full_names))
+        pattern = group.get('pattern', None)
+        return self._filter_tests_by_two_dots_name_pattern(full_names, regex=pattern)
 
     def _get_full_method_names_from_modules(self, pkg_name, group):
         mod_names = group['modules']
@@ -236,6 +246,10 @@ class DefaultTestLoader:
         if len(parts) != 3:
             raise ValueError('%r does not comply with: "module.class.method".' % long_name)
         return parts[0], parts[1], parts[2]
+
+    def _del_except_modules_in_name_tree(self, except_mod_names):
+        for mod_name in set(except_mod_names):
+            self._del_mod_in_name_tree(mod_name)
 
     def _del_except_classes_in_name_tree(self, except_cls_names):
         for except_cls_name in set(except_cls_names):
@@ -284,6 +298,9 @@ class DefaultTestLoader:
     def _build_name_tree(self, pkg_name, mod_names, filter_cls_names=None):
         tree = self._name_tree = dict()
         for mod_name in mod_names:
+            full_mod_name = '.'.join((pkg_name, mod_name)) if pkg_name else mod_name
+            __import__(full_mod_name)
+        for mod_name in mod_names:
             mod_content = self.__class__._inspect_module(pkg_name, mod_name)
             classes = self.__class__._get_classes_of_module(mod_content)
             if not classes:
@@ -302,29 +319,25 @@ class DefaultTestLoader:
                 for mth_name in mth_names:
                     tree[mod_name][cls_name].add(mth_name)
 
+    def _del_mod_in_name_tree(self, mod_name):
+        if mod_name not in self._name_tree:
+            raise ValueError('Cannot exclude %r because it is not included.' % mod_name)
+        del self._name_tree[mod_name]
+
     def _del_cls_in_name_tree(self, mod_name, cls_name):
         long_cls_name = '.'.join((mod_name, cls_name))
-        if mod_name not in self._name_tree:
-            raise ValueError('Cannot exclude %r: %r not found in modules list.' % (long_cls_name, mod_name))
-
-        if cls_name not in self._name_tree[mod_name]:
-            raise ValueError('Cannot exclude %r: %r not found in %r.' % (long_cls_name, cls_name, mod_name))
-
+        if mod_name not in self._name_tree or cls_name not in self._name_tree[mod_name]:
+            raise ValueError('Cannot exclude %r because it is not included.' % long_cls_name)
         del self._name_tree[mod_name][cls_name]
         if not self._name_tree[mod_name]:
             del self._name_tree[mod_name]
 
     def _del_mth_in_name_tree(self, mod_name, cls_name, mth_name):
         long_mth_name = '.'.join((mod_name, cls_name, mth_name))
-        if mod_name not in self._name_tree:
-            raise ValueError('Cannot exclude %r: %r not found in modules list.' % (long_mth_name, mod_name))
-
-        if cls_name not in self._name_tree[mod_name]:
-            raise ValueError('Cannot exclude %r: %r not found in %r.' % (long_mth_name, cls_name, mod_name))
-
-        if mth_name not in self._name_tree[mod_name][cls_name]:
-            raise ValueError('Cannot exclude %r: %r not found in %r.' % (long_mth_name, mth_name, cls_name))
-
+        if mod_name not in self._name_tree \
+                or cls_name not in self._name_tree[mod_name] \
+                or mth_name not in self._name_tree[mod_name][cls_name]:
+            raise ValueError('Cannot exclude %r because it is not included.' % long_mth_name)
         self._name_tree[mod_name][cls_name].remove(mth_name)
         if not self._name_tree[mod_name][cls_name]:
             del self._name_tree[mod_name][cls_name]

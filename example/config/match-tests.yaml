@@ -8,6 +8,7 @@ suites:
       group1:
         granularity: package
         pattern: '^test_module[1-2]{1}\.[a-zA-Z]+[1-3]{1}\.\w+'
+        except_modules: [test_module1]
   suite_name_2:
     max_workers: 2
     package: example
@@ -15,6 +16,8 @@ suites:
       group1:
         granularity: package
         pattern: '^test_module3\.[a-zA-Z]+[7|8]{1}\.\w+'
+        except_classes: [test_module3.MyTestClass7]
+        except_methods: [test_module3.MyTestClass8.test_17]
 reporters:
   html:
     class: unishark.HtmlReporter

@@ -38,21 +38,19 @@ class DecoratorTestCase(unittest.TestCase):
 
         mock_test([0, 0, 0, 0, 1, 2, 0, 2, 4])
 
-    @unittest.expectedFailure
     def test_data_driven_invalid_input_1(self):
         @unishark.data_driven([{'a': 1}, {'a': 3}])
         def mock_test(**param):
             print(param['a'])
+        with self.assertRaises(TypeError):
+            mock_test()
 
-        mock_test()
-
-    @unittest.expectedFailure
     def test_data_driven_invalid_input_2(self):
         @unishark.data_driven(a=set(range(3)))
         def mock_test(**param):
             print(param['a'])
-
-        mock_test()
+        with self.assertRaises(TypeError):
+            mock_test()
 
     def test_multi_treads_data_driven_json_style(self):
         @unishark.multi_threading_data_driven(2, *[{'a': 1, 'b': 2, 'sum': 3}, {'a': 3, 'b': 4, 'sum': 7}])
@@ -129,23 +127,23 @@ class DecoratorTestCase(unittest.TestCase):
         mock_test(cnt)
         self.assertEqual(sum(cnt), 2)
 
-    @unittest.expectedFailure
     def test_multi_threads_data_driven_no_threads(self):
-        @unishark.multi_threading_data_driven(*[{'a': 1, 'b': 2, 'sum': 3}, {'a': 3, 'b': 4, 'sum': 7}])
-        def mock_test(**param):
-            print('%d + %d = %d' % (param['a'], param['b'], param['sum']))
+        with self.assertRaises(TypeError):
+            @unishark.multi_threading_data_driven(*[{'a': 1, 'b': 2, 'sum': 3}, {'a': 3, 'b': 4, 'sum': 7}])
+            def mock_test(**param):
+                print('%d + %d = %d' % (param['a'], param['b'], param['sum']))
 
-    @unittest.expectedFailure
-    def test_multi_threads_data_driven_invalid_threads(self):
-        @unishark.multi_threading_data_driven(0, time=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        def mock_test(**param):
-            time.sleep(param['time'])
+    def test_multi_threads_data_driven_invalid_threads_1(self):
+        with self.assertRaises(ValueError):
+            @unishark.multi_threading_data_driven(0, time=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+            def mock_test(**param):
+                time.sleep(param['time'])
 
-    @unittest.expectedFailure
-    def test_multi_threads_data_driven_invalid_threads(self):
-        @unishark.multi_threading_data_driven(-1, time=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        def mock_test(**param):
-            time.sleep(param['time'])
+    def test_multi_threads_data_driven_invalid_threads_2(self):
+        with self.assertRaises(ValueError):
+            @unishark.multi_threading_data_driven(-1, time=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+            def mock_test(**param):
+                time.sleep(param['time'])
 
 
 if __name__ == '__main__':

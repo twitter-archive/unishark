@@ -202,11 +202,10 @@ class RunnerTestCase(unittest.TestCase):
                          'INFO: Here is log of test_2\n')
         self.assertIn('AssertionError: 2 != 1', result.results['test_runner']['test_runner.MyTestClass1'][1][5])
 
-    @unittest.expectedFailure
     def test_init_with_non_iterable_reporters(self):
-        unishark.BufferedTestRunner(reporters=unishark.HtmlReporter())
+        with self.assertRaises(TypeError):
+            unishark.BufferedTestRunner(reporters=unishark.HtmlReporter())
 
-    @unittest.expectedFailure
     def test_init_with_wrong_reporter_type(self):
         class MyReporter():
             def __init__(self):
@@ -217,7 +216,8 @@ class RunnerTestCase(unittest.TestCase):
 
             def collect(self):
                 pass
-        unishark.BufferedTestRunner(reporters=[MyReporter()])
+        with self.assertRaises(TypeError):
+            unishark.BufferedTestRunner(reporters=[MyReporter()])
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(RunnerTestCase)
