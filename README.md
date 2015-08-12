@@ -83,7 +83,7 @@ test:
   name_pattern: '^test\w*'
 ```
   
-It defines 3 test suites with some of the test cases excluded, and configures runnning the defined set of tests with multi-threads (max_workers), and generating both HTML and XUnit (default JUnit) format reports at the end of tests.
+It defines 3 test suites with some of the test cases excluded, and configures running the defined set of tests with multi-threads (max_workers), and generating both HTML and XUnit (default JUnit) format reports at the end of tests.
   
 To run it, simply add the following code:
 ```python

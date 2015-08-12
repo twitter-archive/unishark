@@ -1,6 +1,17 @@
 CHANGELOG
 =========
 
+0.2.2 (2015-08-12)
+------------------
+
+ - support loading tests from a package with pattern matching, and excluding modules/classes/methods from the loaded tests.
+ - add load_tests_from_package and load_tests_from_modules api.
+ - rename load_test_from_dict to load_tests_from_dict.
+ - fix that verbose stdout mode does not print test method doc string.
+ - fix that tests loaded with method granularity are not filtered by method name pattern.
+ - less strict dependency versions.
+
+
 0.2.1 (2015-05-11)
 ------------------
 

@@ -4,14 +4,12 @@ INTRODUCTION
 unishark extends unittest (to be more accurate, unittest2) in the
 following ways:
 
--  Customizing test suites with dictionary config (or yaml/json like
-   config).
--  Running the tests in parallel.
+-  Customizing test suites with dictionary config (or yaml/json like config).
+-  Running the tests concurrently.
 -  Generating polished test reports in HTML/XUnit formats.
 -  Offering data-driven decorator to accelerate tests writing.
 
-You could acquire the first three features for your existent unittests
-immediately with a single config, without changing any existing code.
+For existing unittests, the first three features could be gained immediately with a single config, without changing any test code.
 
 The Test Config
 ---------------
@@ -43,7 +41,15 @@ directly in a dict()):
           my_group_1:
             granularity: method
             methods: [test_module3.MyTestClass6.test_13, test_module3.MyTestClass7.test_15]
-
+      my_suite_name_3:
+        package: another.package.name
+        groups:
+          group_1:
+            granularity: package
+            pattern: '(\w+\.){2}test\w*'
+            except_modules: [module1, module2]
+            except_classes: [module3.Class1, module3.Class3]
+            except_methods: [module3.Class2.test_1, module4.Class2.test_5]
     reporters:
       html:
         class: unishark.HtmlReporter
@@ -57,15 +63,14 @@ directly in a dict()):
           summary_title: 'Example Report'
 
     test:
-      suites: [my_suite_name_1, my_suite_name_2]
-      max_workers: 2
+      suites: [my_suite_name_1, my_suite_name_2, my_suite_name_3]
+      max_workers: 3
       reporters: [html, xunit]
-      method_prefix: 'test'
+      name_pattern: '^test\w*'
 
-It defines two test suites with some of the test cases excluded, and
-tells unishark to run the defined set of tests with multi-threads
-(max\_workers), then generate both HTML and XUnit (default JUnit) format
-reports at the end of testing.
+It defines 3 test suites with some of the test cases excluded,
+and configures running the defined set of tests with multi-threads (max_workers),
+and generating both HTML and XUnit (default JUnit) format reports at the end of tests.
 
 To run it, simply add the following code:
 
@@ -75,11 +80,10 @@ To run it, simply add the following code:
     import yaml
 
     if __name__ == '__main__':
-        dict_conf = None
         with open('your_yaml_config_file', 'r') as f:
             dict_conf = yaml.load(f.read())  # use a 3rd party yaml parser, e.g., PyYAML
-        program = unishark.DefaultTestProgram(dict_conf)
-        unishark.main(program)
+            program = unishark.DefaultTestProgram(dict_conf)
+            unishark.main(program)
 
 A HTML report example can be found Here_.
 

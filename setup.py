@@ -10,8 +10,8 @@ long_description = (
     open(path.join('docs', 'CHANGELOG.rst'), 'r').read()
 )
 
-py3_requires = ['Jinja2>=2.7.2', 'MarkupSafe>=0.15']
-py2_requires = ['Jinja2>=2.7.2', 'MarkupSafe>=0.15', 'futures>=2.1.1']
+py3_requires = ['Jinja2', 'MarkupSafe']
+py2_requires = ['Jinja2', 'MarkupSafe', 'futures']
 
 requires = None
 if version_info[0] >= 3 and version_info[1] >= 2:
@@ -51,7 +51,7 @@ setup(
         'Programming Language :: Python :: 3.4',
     ],
 
-    keywords='unittest extension test reports config utility',
+    keywords='unittest extension test framework reports config parameterization',
 
     # See https://packaging.python.org/en/latest/requirements.html
     install_requires=requires,
