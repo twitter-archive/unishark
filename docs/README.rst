@@ -170,7 +170,7 @@ Multi-threads data-driven in 'json style':
     def test_data_driven(self, **param):
         print('userid: %d, passwd: %s' % (param['userid'], param['passwd']))
 
-Results: same results as using <code>unishark.data_driven</code>, but up to 2 threads are spawned, each running the test with a set of inputs (userid, passwd).
+Results: same results as using unishark.data_driven, but up to 2 threads are spawned, each running the test with a set of inputs (userid, passwd).
 
 Multi-threads data-driven in 'args style':
 
@@ -181,7 +181,7 @@ Multi-threads data-driven in 'args style':
         sleep(param['time'])
 
 Results: 5 threads are spawned to run the test with 10 sets of inputs concurrently (only sleep 1 sec in each thread).
-It takes about 2 sec in total (10 sec if using <code>unishark.data_driven</code>) to run.
+It takes about 2 sec in total (10 sec if using unishark.data_driven) to run.
 
 For more information please visit the Project_Home_ and read README.md.
 
