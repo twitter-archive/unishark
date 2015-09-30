@@ -1,0 +1,45 @@
+version: 1
+
+suites:
+  suite_name_1:
+    max_workers: 2
+    concurrency_level: module
+    package: example
+    groups:
+      group1:
+        granularity: module
+        modules: [test_module1, test_module2]
+  suite_name_2:
+    max_workers: 2
+    concurrency_level: class
+    package: example
+    groups:
+      group1:
+        granularity: class
+        classes: [test_module3.MyTestClass5, test_module3.MyTestClass6]
+  suite_name_3:
+    max_workers: 10
+    concurrency_level: method
+    package: example
+    groups:
+      group1:
+        granularity: class
+        classes: [test_module3.MyTestClass7,
+                  test_module3.MyTestClass8]
+
+reporters:
+  html:
+    class: unishark.HtmlReporter
+    kwargs:
+      dest: logs
+      overview_title: 'Example Report'
+      overview_description: 'This is an example report'
+  xunit:
+    class: unishark.XUnitReporter
+    kwargs:
+      summary_title: 'Example Report'
+
+test:
+  suites: [suite_name_1, suite_name_2, suite_name_3]
+  max_workers: 3
+  reporters: [html, xunit]

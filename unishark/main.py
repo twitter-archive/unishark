@@ -85,7 +85,9 @@ class DefaultTestProgram(TestProgram):
             package_name = suite_content['package']
             suite = suite_content['suite']
             max_workers = suite_content['max_workers']
-            result = runner.run(suite, name=suite_name, description='Package: ' + package_name, max_workers=max_workers)
+            concurrency_level = suite_content['concurrency_level']
+            result = runner.run(suite, name=suite_name, description='Package: ' + package_name,
+                                max_workers=max_workers, concurrency_level=concurrency_level)
             exit_code += 0 if result.wasSuccessful() else 1
         for reporter in self.reporters:
             reporter.collect()
@@ -101,13 +103,15 @@ class DefaultTestProgram(TestProgram):
                 package_name = suite_content['package']
                 suite = suite_content['suite']
                 max_workers = suite_content['max_workers']
+                concurrency_level = suite_content['concurrency_level']
                 runner = unishark.BufferedTestRunner(reporters=self.reporters,
                                                      verbosity=self.verbosity,
                                                      descriptions=self.descriptions)
                 future = executor.submit(runner.run, suite,
                                          name=suite_name,
                                          description='Package: ' + package_name,
-                                         max_workers=max_workers)
+                                         max_workers=max_workers,
+                                         concurrency_level=concurrency_level)
                 futures.append(future)
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()

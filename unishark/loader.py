@@ -43,7 +43,8 @@ class DefaultTestLoader:
             suites_dict[suite_name] = {
                 'package': package,
                 'suite': suite,
-                'max_workers': content['max_workers']
+                'max_workers': content['max_workers'],
+                'concurrency_level': content['concurrency_level']
             }
             log.info('Created test suite %r successfully from package %r.' % (suite_name, package))
         return suites_dict
@@ -160,10 +161,15 @@ class DefaultTestLoader:
                 else:
                     raise ValueError('Granularity must be one of %r.' % ['package', 'module', 'class', 'method'])
             max_workers = int(suite['max_workers']) if 'max_workers' in suite else 1
+            concurrency_level = suite['concurrency_level'] if 'concurrency_level' in suite else 'class'
+            concur_levels = ['module', 'class', 'method']
+            if concurrency_level not in concur_levels:
+                raise ValueError('Concurrency level (%r) is not one of %r.' % (concurrency_level, concur_levels))
             res_suites[suite_name] = {
                 'package': pkg_name or 'None',
                 'test_case_names': set(test_cases_names),
-                'max_workers': max_workers
+                'max_workers': max_workers,
+                'concurrency_level': concurrency_level
             }
         log.debug('Parsed test config: %r' % res_suites)
         log.info('Parsed test config successfully.')

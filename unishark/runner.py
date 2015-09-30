@@ -294,26 +294,39 @@ class BufferedTestRunner(unittest.TextTestRunner):
                         result.results[mod_name][cls_name] = []
                     result.results[mod_name][cls_name].extend(tups)
 
-    def _group_test_cases_by_class(self, test, dic):
+    def _group_test_cases(self, test, dic, by):
         if not self.__class__._is_suite(test):
-            if test.__class__ not in dic:
-                dic[test.__class__] = []
-            dic[test.__class__].append(test)
+            key = get_module_name(test) if by == 'module' else test.__class__
+            if key not in dic:
+                dic[key] = []
+            dic[key].append(test)
         else:
             for t in test:
-                self._group_test_cases_by_class(t, dic)
+                self._group_test_cases(t, dic, by)
 
-    def _regroup_test_cases(self, test):
-        dic = dict()
-        self._group_test_cases_by_class(test, dic)
+    def _ungroup_test_cases(self, test, lis):
+        if not self.__class__._is_suite(test):
+            lis.append(test)
+        else:
+            for t in test:
+                self._ungroup_test_cases(t, lis)
+
+    def regroup_test_cases(self, test, by='class'):
         suite = unittest.TestSuite()
-        for _, cases in dic.items():
-            cls_suite = unittest.TestSuite()
-            cls_suite.addTests(cases)
-            suite.addTest(cls_suite)
+        if by == 'method':
+            cases = list()
+            self._ungroup_test_cases(test, cases)
+            suite.addTests(cases)
+        else:
+            dic = dict()
+            self._group_test_cases(test, dic, by)
+            for cases in dic.values():
+                sub_suite = unittest.TestSuite()
+                sub_suite.addTests(cases)
+                suite.addTest(sub_suite)
         return suite
 
-    def run(self, test, name='test', description='', max_workers=1):
+    def run(self, test, name='test', description='', max_workers=1, concurrency_level='class'):
         result = self._before_run()
         result.name = name
         result.description = description
@@ -325,8 +338,8 @@ class BufferedTestRunner(unittest.TextTestRunner):
             if max_workers <= 1 or not self.__class__._is_suite(test):
                 test(result)
             else:
-                test = self._regroup_test_cases(test)
-                log.debug('Regrouped tests by class: %r' % test)
+                test = self.regroup_test_cases(test, by=concurrency_level)
+                log.debug('Regrouped tests: %r' % test)
                 results = [self._before_run() for _ in test]
                 with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
                     for t, r in zip(test, results):

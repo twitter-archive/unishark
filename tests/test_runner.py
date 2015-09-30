@@ -219,6 +219,95 @@ class RunnerTestCase(unittest.TestCase):
         with self.assertRaises(TypeError):
             unishark.BufferedTestRunner(reporters=[MyReporter()])
 
+    def test_regroup_suite_by_module(self):
+        self.suite = self.loader.loadTestsFromNames(['tests.mock1.test_module1',
+                                                     'tests.mock1.test_module2'])
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='module')
+        self.assertEqual(sum([1 for _ in tests]), 2)
+        self.suite = self.loader.loadTestsFromNames(['tests.mock1.test_module1.MyTestClass1',
+                                                     'tests.mock1.test_module1.MyTestClass2',
+                                                     'tests.mock1.test_module2.MyTestClass3',
+                                                     'tests.mock1.test_module2.MyTestClass4'])
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='module')
+        self.assertEqual(sum([1 for _ in tests]), 2)
+        self.suite = self.loader.loadTestsFromNames(['tests.mock1.test_module1.MyTestClass1.test_1',
+                                                     'tests.mock1.test_module1.MyTestClass2.test_3',
+                                                     'tests.mock1.test_module2.MyTestClass3.test_5',
+                                                     'tests.mock1.test_module2.MyTestClass4.test_8'])
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='module')
+        self.assertEqual(sum([1 for _ in tests]), 2)
+        from tests.mock1 import test_module1
+        self.suite = self.loader.loadTestsFromModule(test_module1)
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='module')
+        self.assertEqual(sum([1 for _ in tests]), 1)
+        self.suite = self.loader.loadTestsFromTestCase(test_module1.MyTestClass1)
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='module')
+        self.assertEqual(sum([1 for _ in tests]), 1)
+
+    def test_regroup_suite_by_class(self):
+        self.suite = self.loader.loadTestsFromNames(['tests.mock1.test_module1',
+                                                     'tests.mock1.test_module2'])
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='class')
+        self.assertEqual(sum([1 for _ in tests]), 4)
+        self.suite = self.loader.loadTestsFromNames(['tests.mock1.test_module1.MyTestClass1',
+                                                     'tests.mock1.test_module1.MyTestClass2',
+                                                     'tests.mock1.test_module2.MyTestClass3'])
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='class')
+        self.assertEqual(sum([1 for _ in tests]), 3)
+        self.suite = self.loader.loadTestsFromNames(['tests.mock1.test_module1.MyTestClass1.test_1',
+                                                     'tests.mock1.test_module1.MyTestClass1.test_2',
+                                                     'tests.mock1.test_module1.MyTestClass2.test_3'])
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='class')
+        self.assertEqual(sum([1 for _ in tests]), 2)
+        from tests.mock1 import test_module1
+        self.suite = self.loader.loadTestsFromModule(test_module1)
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='class')
+        self.assertEqual(sum([1 for _ in tests]), 2)
+        self.suite = self.loader.loadTestsFromTestCase(test_module1.MyTestClass1)
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='class')
+        self.assertEqual(sum([1 for _ in tests]), 1)
+
+    def test_regroup_suite_by_method(self):
+        self.suite = self.loader.loadTestsFromNames(['tests.mock1.test_module1',
+                                                     'tests.mock1.test_module2'])
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='method')
+        self.assertEqual(sum([1 for _ in tests]), 10)
+        self.suite = self.loader.loadTestsFromNames(['tests.mock1.test_module1.MyTestClass1',
+                                                     'tests.mock1.test_module1.MyTestClass2',
+                                                     'tests.mock1.test_module2.MyTestClass3'])
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='method')
+        self.assertEqual(sum([1 for _ in tests]), 7)
+        self.suite = self.loader.loadTestsFromNames(['tests.mock1.test_module1.MyTestClass1.test_1',
+                                                     'tests.mock1.test_module1.MyTestClass1.test_2',
+                                                     'tests.mock1.test_module1.MyTestClass2.test_3'])
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='method')
+        self.assertEqual(sum([1 for _ in tests]), 3)
+        from tests.mock1 import test_module1
+        self.suite = self.loader.loadTestsFromModule(test_module1)
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='method')
+        self.assertEqual(sum([1 for _ in tests]), 4)
+        self.suite = self.loader.loadTestsFromTestCase(test_module1.MyTestClass1)
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='method')
+        self.assertEqual(sum([1 for _ in tests]), 2)
+
+    def test_regroup_suite_by_default(self):
+        self.suite = self.loader.loadTestsFromNames(['tests.mock1.test_module1',
+                                                     'tests.mock1.test_module2'])
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite)
+        self.assertEqual(sum([1 for _ in tests]), 4)
+        self.suite = self.loader.loadTestsFromNames(['tests.mock1.test_module1.MyTestClass1.test_1',
+                                                     'tests.mock1.test_module1.MyTestClass1.test_2',
+                                                     'tests.mock1.test_module1.MyTestClass2.test_3'])
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='???')
+        self.assertEqual(sum([1 for _ in tests]), 2)
+        from tests.mock1 import test_module1
+        self.suite = self.loader.loadTestsFromModule(test_module1)
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite, by='xxx')
+        self.assertEqual(sum([1 for _ in tests]), 2)
+        self.suite = self.loader.loadTestsFromTestCase(test_module1.MyTestClass1)
+        tests = unishark.BufferedTestRunner().regroup_test_cases(self.suite)
+        self.assertEqual(sum([1 for _ in tests]), 1)
+
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(RunnerTestCase)
     rslt = unishark.BufferedTestRunner(verbosity=2).run(suite)

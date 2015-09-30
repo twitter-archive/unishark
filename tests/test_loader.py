@@ -1016,6 +1016,118 @@ class LoaderTestCase(unittest.TestCase):
         with self.assertRaises(ImportError):
             self.loader.load_tests_from_modules(['tests.mock2.no_such_mod'])
 
+    def test_concurrency_level_module_and_method(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'package': 'tests.mock1',
+                    'max_workers': 2,
+                    'concurrency_level': 'module',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'class',
+                            'classes': ['test_module2.MyTestClass3'],
+                            'except_methods': ['test_module2.MyTestClass3.test_5']
+                        },
+                        'g2': {
+                            'granularity': 'module',
+                            'modules': ['test_module1'],
+                            'except_classes': ['test_module1.MyTestClass2'],
+                            'except_methods': ['test_module1.MyTestClass1.test_2']
+                        }
+                    }
+                },
+                'my_suite_2': {
+                    'package': 'tests.mock2',
+                    'max_workers': 2,
+                    'concurrency_level': 'method',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'method',
+                            'methods': ['test_module3.MyTestClass5.test_11',
+                                        'test_module3.MyTestClass6.test_13']
+                        }
+                    }
+                }
+            },
+            'test': {
+                'suites': ['my_suite_1', 'my_suite_2']
+            }
+        }
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
+        self.assertEqual(suite_dict['my_suite_1']['concurrency_level'], 'module')
+        self.assertEqual(suite_dict['my_suite_2']['concurrency_level'], 'method')
+
+    def test_concurrency_level_class(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'package': 'tests.mock1',
+                    'max_workers': 2,
+                    'groups': {
+                        'g1': {
+                            'granularity': 'class',
+                            'classes': ['test_module2.MyTestClass3'],
+                            'except_methods': ['test_module2.MyTestClass3.test_5']
+                        },
+                        'g2': {
+                            'granularity': 'module',
+                            'modules': ['test_module1'],
+                            'except_classes': ['test_module1.MyTestClass2'],
+                            'except_methods': ['test_module1.MyTestClass1.test_2']
+                        }
+                    }
+                },
+                'my_suite_2': {
+                    'package': 'tests.mock2',
+                    'concurrency_level': 'class',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'method',
+                            'methods': ['test_module3.MyTestClass5.test_11',
+                                        'test_module3.MyTestClass6.test_13']
+                        }
+                    }
+                }
+            },
+            'test': {
+                'suites': ['my_suite_1', 'my_suite_2']
+            }
+        }
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
+        self.assertEqual(suite_dict['my_suite_1']['concurrency_level'], 'class')
+        self.assertEqual(suite_dict['my_suite_2']['concurrency_level'], 'class')
+
+    def test_invalid_concurrency_level(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'package': 'tests.mock1',
+                    'max_workers': 2,
+                    'concurrency_level': 'mod',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'class',
+                            'classes': ['test_module2.MyTestClass3'],
+                            'except_methods': ['test_module2.MyTestClass3.test_5']
+                        },
+                        'g2': {
+                            'granularity': 'module',
+                            'modules': ['test_module1'],
+                            'except_classes': ['test_module1.MyTestClass2'],
+                            'except_methods': ['test_module1.MyTestClass1.test_2']
+                        }
+                    }
+                }
+            },
+            'test': {
+                'suites': ['my_suite_1']
+            }
+        }
+        with self.assertRaises(ValueError) as cm:
+            self.loader.load_tests_from_dict(dict_conf)
+        self.assertEqual(str(cm.exception), "Concurrency level ('mod') is not one of ['module', 'class', 'method'].")
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
