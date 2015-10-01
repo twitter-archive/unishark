@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+0.2.3 (2015-09-01)
+------------------
+
+ - enable 'module' and 'method' level concurrent execution in a suite.
+
+
 0.2.2 (2015-08-12)
 ------------------
 

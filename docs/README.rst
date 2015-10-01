@@ -43,6 +43,8 @@ directly in a dict()):
             methods: [test_module3.MyTestClass6.test_13, test_module3.MyTestClass7.test_15]
       my_suite_name_3:
         package: another.package.name
+        max_workers: 20
+        concurrency_level: method
         groups:
           group_1:
             granularity: package
