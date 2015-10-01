@@ -224,31 +224,37 @@ loggers:
 <a name="Concurrent_Tests"></a>
 ### Concurrent Tests
   
-There are two levels of concurrency: concurrency at classes level within a suite and concurrency at suites level.
+Concurrency in unishark can be:  
+* concurrent execution of multiple suites.
+* concurrent execution within a suite:  
+  - at module level.
+  - at class level.
+  - at method level.
   
-To enable concurrency within a suite, set 'max_workers' > 1 in the suite config: 
-```yaml
-suites:
-  my_suite_name_1:
-    max_workers: 6
-    ...
-```
-  
-To enable concurrency at suites level, set 'max_workers' > 1 in the **test** section:
+To enable concurrent execution of multiple suites, set 'max_workers' > 1 in the **test** section:
 ```yaml
 test:
   ...
   max_workers: 2
 ```
   
+To enable concurrent execution within a suite, set 'max_workers' > 1 and 'concurrency_level' to 'module' or 'class' or 'method' in the suite config: 
+```yaml
+suites:
+  my_suite_name_1:
+    max_workers: 6
+    concurrency_level: module
+    ...
+```
+  
 **NOTE**: 
 * Currently only multi-threading is supported, not multi-processing. Multi-threading concurrency will significantly shorten the running time of I/O bound tests (which many practical cases are, e.g., http requests). But it is not so useful when the tests are CPU bound due to python's GIL.
-* The smallest granularity of the concurrency is class, not method (this is to make sure <code>setUpClass()</code> and <code>tearDownClass()</code> is executed once for each class, unfortunately). This means test cases in the same class are always executed sequentially, and test cases from the different classes might be executed concurrently.
-* It is user's responsibility to make sure the test cases are thread-safe before enabling the concurrent tests. For example, Race conditions will occur if any method, including <code>setUpClass()</code>/<code>tearDownClass()</code> and <code>setUp()</code>/<code>tearDown()</code>, tries to modify a cross-classes shared resource, while trying to modify a class-scope shared resource is thread-safe.
-* Technically one can split a class into two suites (by loading test cases with 'method' granularity), and run the methods in the same class concurrently by running the two suites concurrently (but why would you do that?). In this case, <code>setUpClass()</code>/<code>tearDownClass()</code> will be executed twice for the same class, and modifying a class-scope shared resource might be a problem.
-* If <code>setUpModule()</code>/<code>tearDownModule()</code> is defined in a module and the module has more than one test classes in it, enabling concurrency at class level will cause <code>setUpModule()</code>/<code>tearDownModule()</code> being executed multiple times.
-* To achieve full concurrency, set suites[\<suite name\>]['max_workers'] >= number of classes within a suite and set test['max_workers'] >= number of test['suites'].
 * If 'max_workers' is not set or its value <= 1, it is just sequential running.
+* The default 'concurrency_level' is 'class' if not set. 
+* **Users are responsible for reasoning the thread-safety** before enabling concurrent execution. For example, when concurrency_level is 'method', race conditions will occur if any method including setUp/tearDown tries to modify a class-scope shared resource. In this case, user should set concurrency_level to 'class' or 'module'.
+* On the condition of thread-safety, the recommended concurrency_level for most user cases are: If there is setUpModule/tearDownModule in a module, set concurrency_level to 'module', **otherwise setUpModule/tearDownModule may run multiple times for the module.**; If there is setUpClass/tearDownClass in a class, set concurrency_level to 'class' or 'module', **otherwise setUpClass/tearDownClass may run multiple times for the class.**; If there are only setUp/tearDown, concurrency_level can be set to any level.
+* To achieve full concurrency, set suites[\<suite name\>]['max_workers'] >= number of modules/classes/methods within a suite along with suites[\<suite name\>]['concurrency_level'] set to module/class/method, and set test['max_workers'] >= number of test['suites'].
+  
 
 <a name="Data_Driven"></a>
 ## Data Driven
@@ -364,14 +370,15 @@ if __name__ == '__main__':
     import sys
     suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
     reporter = unishark.HtmlReporter(dest='log')
-    # This will run the suite with 2 workers and generate 'mytest2_result.html'
-    result = unishark.BufferedTestRunner(reporters=[reporter]).run(suite, name='mytest2', max_workers=2)
+    # Run methods concurrently with 10 workers and generate 'mytest2_result.html'
+    result = unishark.BufferedTestRunner(reporters=[reporter]).run(suite, name='mytest2', max_workers=10, concurrency_level='method')
     sys.exit(0 if result.wasSuccessful() else 1)
 ```
 ```python
 if __name__ == '__main__':
     import sys
     suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
+    # Run classes concurrently with 2 workers
     result = unishark.BufferedTestRunner().run(suite, name='mytest3', max_workers=2)
     # Generating reports can be delayed
     reporter = unishark.HtmlReporter(dest='log')
@@ -391,6 +398,7 @@ if __name__ == '__main__':
         package_name = suite_content['package']
         suite = suite_content['suite']
         max_workers = suite_content['max_workers']
+        concurrency_level = suite_content['concurrency_level']
         unittest.TextTestRunner().run(suite)
 ```
   
