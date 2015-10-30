@@ -15,11 +15,11 @@
 import sys
 import traceback
 import unittest
+from unishark.suite import TestSuite, convert
 from unittest.signals import registerResult
 import time
 from unishark.util import (get_long_class_name, get_long_method_name, get_module_name)
 import threading
-import concurrent.futures
 from collections import deque
 from inspect import ismodule
 import warnings
@@ -195,6 +195,14 @@ class BufferedTestResult(unittest.TextTestResult):
         return len(self.failures) == len(self.errors) == len(self.unexpectedSuccesses) == 0
 
 
+_concurrency_level_to_int = {
+    'none': TestSuite.ROOT_LEVEL,
+    'module': TestSuite.MODULE_LEVEL,
+    'class': TestSuite.CLASS_LEVEL,
+    'method': TestSuite.METHOD_LEVEL
+}
+
+
 class BufferedTestRunner(unittest.TextTestRunner):
     def __init__(self, reporters=None, verbosity=1, descriptions=False):
         super(BufferedTestRunner, self).__init__(buffer=False,
@@ -210,9 +218,18 @@ class BufferedTestRunner(unittest.TextTestRunner):
             if not isinstance(reporter, Reporter):
                 raise TypeError
 
+    def make_result(self):
+        return self.resultclass(self.stream, self.descriptions, self.verbosity)
+
+    def make_results_tree(self, test, result):
+        if self.__class__._is_suite(test):
+            result.children = [self.make_result() for _ in test]
+            for t, r in zip(test, result.children):
+                self.make_results_tree(t, r)
+
     def _before_run(self):
         # Keep the same as lines 145-162 in unittest.TextTextRunner.run
-        result = self.resultclass(self.stream, self.descriptions, self.verbosity)
+        result = self.make_result()
         registerResult(result)
         result.failfast = self.failfast
         result.buffer = self.buffer
@@ -276,56 +293,6 @@ class BufferedTestRunner(unittest.TextTestRunner):
             return False
         return True
 
-    @staticmethod
-    def _combine_results(result, results):
-        for r in results:
-            result.failures.extend(r.failures)
-            result.errors.extend(r.errors)
-            result.testsRun += r.testsRun
-            result.skipped.extend(r.skipped)
-            result.expectedFailures.extend(r.expectedFailures)
-            result.unexpectedSuccesses.extend(r.unexpectedSuccesses)
-            result.successes += r.successes
-            for mod_name, mod in r.results.items():
-                if mod_name not in result.results:
-                    result.results[mod_name] = dict()
-                for cls_name, tups in mod.items():
-                    if cls_name not in result.results[mod_name]:
-                        result.results[mod_name][cls_name] = []
-                    result.results[mod_name][cls_name].extend(tups)
-
-    def _group_test_cases(self, test, dic, by):
-        if not self.__class__._is_suite(test):
-            key = get_module_name(test) if by == 'module' else test.__class__
-            if key not in dic:
-                dic[key] = []
-            dic[key].append(test)
-        else:
-            for t in test:
-                self._group_test_cases(t, dic, by)
-
-    def _ungroup_test_cases(self, test, lis):
-        if not self.__class__._is_suite(test):
-            lis.append(test)
-        else:
-            for t in test:
-                self._ungroup_test_cases(t, lis)
-
-    def regroup_test_cases(self, test, by='class'):
-        suite = unittest.TestSuite()
-        if by == 'method':
-            cases = list()
-            self._ungroup_test_cases(test, cases)
-            suite.addTests(cases)
-        else:
-            dic = dict()
-            self._group_test_cases(test, dic, by)
-            for cases in dic.values():
-                sub_suite = unittest.TestSuite()
-                sub_suite.addTests(cases)
-                suite.addTest(sub_suite)
-        return suite
-
     def run(self, test, name='test', description='', max_workers=1, concurrency_level='class'):
         result = self._before_run()
         result.name = name
@@ -335,16 +302,13 @@ class BufferedTestRunner(unittest.TextTestRunner):
         if start_test_run is not None:
             start_test_run()
         try:
-            if max_workers <= 1 or not self.__class__._is_suite(test):
+            if not self.__class__._is_suite(test):
                 test(result)
             else:
-                test = self.regroup_test_cases(test, by=concurrency_level)
-                log.debug('Regrouped tests: %r' % test)
-                results = [self._before_run() for _ in test]
-                with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
-                    for t, r in zip(test, results):
-                        executor.submit(t, r)
-                self.__class__._combine_results(result, results)
+                test = convert(test)
+                self.make_results_tree(test, result)
+                test.run(result, concurrency_level=_concurrency_level_to_int[concurrency_level],
+                         max_workers=max_workers)
         finally:
             stop_test_run = getattr(result, 'stopTestRun', None)
             if stop_test_run is not None:
