@@ -13,20 +13,19 @@
 # limitations under the License.
 
 __all__ = ['DefaultTestLoader',
-           'TestSuite', 'convert',
            'out', 'BufferedTestResult', 'BufferedTestRunner',
            'HtmlReporter', 'XUnitReporter',
            'main', 'DefaultTestProgram',
            'data_driven', 'multi_threading_data_driven',
            'ContextManager', 'contexts']
 
-from unishark.suite import TestSuite, convert
-from unishark.runner import (out, BufferedTestResult, BufferedTestRunner)
+from unishark.result import (out, BufferedTestResult)
 from unishark.reporter import (Reporter, HtmlReporter, XUnitReporter)
-from unishark.decorator import data_driven, multi_threading_data_driven
-from unishark.main import (TestProgram, DefaultTestProgram, main)
+from unishark.runner import BufferedTestRunner
 from unishark.loader import DefaultTestLoader
+from unishark.decorator import data_driven, multi_threading_data_driven
 from unishark.util import ContextManager, contexts
+from unishark.main import (TestProgram, DefaultTestProgram, main)
 
 
 PACKAGE = __name__

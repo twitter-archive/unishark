@@ -39,7 +39,7 @@ class DefaultTestLoader:
             test_case_names = content['test_case_names']
             suite = self.load_tests_from_full_names(test_case_names)
             if suite.countTestCases() <= 0:
-                log.warning('Test suite %r is empty.' % suite_name)
+                log.error('Test suite %r is empty.' % suite_name)
             suites_dict[suite_name] = {
                 'package': package,
                 'suite': suite,

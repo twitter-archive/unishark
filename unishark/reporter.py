@@ -19,7 +19,7 @@ import codecs
 import datetime
 import abc
 import unishark
-from unishark.runner import (PASS, SKIPPED, ERROR, FAIL, EXPECTED_FAIL, UNEXPECTED_PASS)
+from unishark.result import (PASS, SKIPPED, ERROR, FAIL, EXPECTED_FAIL, UNEXPECTED_PASS)
 import threading
 
 _status_to_str = {

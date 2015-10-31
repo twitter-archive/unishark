@@ -16,6 +16,7 @@
 from unittest.suite import TestSuite as UnitTestSuite
 import sys
 from unishark.util import get_module_name
+from unishark.result import combine_results
 import concurrent.futures
 import logging
 
@@ -93,24 +94,6 @@ def convert(test):
     return suite
 
 
-def _combine_results(result, results):
-    for r in results:
-        result.failures.extend(r.failures)
-        result.errors.extend(r.errors)
-        result.testsRun += r.testsRun
-        result.skipped.extend(r.skipped)
-        result.expectedFailures.extend(r.expectedFailures)
-        result.unexpectedSuccesses.extend(r.unexpectedSuccesses)
-        result.successes += r.successes
-        for mod_name, mod in r.results.items():
-            if mod_name not in result.results:
-                result.results[mod_name] = dict()
-            for cls_name, tups in mod.items():
-                if cls_name not in result.results[mod_name]:
-                    result.results[mod_name][cls_name] = []
-                result.results[mod_name][cls_name].extend(tups)
-
-
 class TestSuite(UnitTestSuite):
     ROOT_LEVEL = 0
     MODULE_LEVEL = 1
@@ -129,7 +112,7 @@ class TestSuite(UnitTestSuite):
         if debug or concurrency_level == TestSuite.ROOT_LEVEL or max_workers <= 1:
             return super(TestSuite, self).run(result, debug)
         if _get_level(self) != TestSuite.ROOT_LEVEL:
-            raise RuntimeError('Test suite is not well-formed. Use suite.convert to reform it.')
+            raise RuntimeError('Test suite is not well-formed.')
         with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
             self._run(self, result, TestSuite.ROOT_LEVEL, concurrency_level, executor, timeout)
         return result
@@ -174,7 +157,7 @@ class TestSuite(UnitTestSuite):
                 futures = [executor.submit(self._run, t, r, current_level+1, concurrency_level, executor, timeout)
                            for t, r in zip(test, results)]
                 concurrent.futures.wait(futures, timeout=timeout)
-            _combine_results(result, results)  # Conquer: collect child results into parent result
+            combine_results(result, results)  # Conquer: collect child results into parent result
         return test, result
 
     def _seq_run(self, test, result):
