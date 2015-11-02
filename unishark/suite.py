@@ -121,6 +121,17 @@ class TestSuite(UnitTestSuite):
                 for case in cls_suite:
                     assert not _is_suite(case)
 
+    def validate_result(self, result):
+        assert len(self) == len(result)
+        for mod_suite, mod_result in zip(self, result):
+            assert len(mod_suite) == len(mod_result)
+            assert type(mod_result) is type(result)
+            for cls_suite, cls_result in zip(mod_suite, mod_result):
+                assert len(cls_suite) == len(cls_result)
+                assert type(cls_result) is type(result)
+                for case_result in cls_result:
+                    assert type(case_result) is type(result)
+
     def run(self, result, debug=False, concurrency_level=ROOT_LEVEL, max_workers=1, timeout=None):
         if concurrency_level < TestSuite.ROOT_LEVEL or concurrency_level > TestSuite.METHOD_LEVEL:
             raise ValueError('concurrency_level must be between %d and %d.'
@@ -128,18 +139,12 @@ class TestSuite(UnitTestSuite):
         if debug or self.countTestCases() <= 0 or max_workers <= 1:
             return super(TestSuite, self).run(result, debug=debug)
         self.validate()
-        num_modules = len(self)
-        num_classes = sum([len(mod) for mod in self])
-        # Allocates extra workers to avoid deadlock in recursive _run()
-        if concurrency_level == TestSuite.METHOD_LEVEL:
-            max_workers += num_modules + num_classes
-        elif concurrency_level == TestSuite.CLASS_LEVEL:
-            max_workers += num_modules
-        with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
-            self._run(self, result, TestSuite.ROOT_LEVEL, concurrency_level, executor, timeout)
+        self.validate_result(result)
+        with concurrent.futures.ThreadPoolExecutor(max_workers) as main_executor:
+            self._run(self, result, TestSuite.ROOT_LEVEL, concurrency_level, main_executor, timeout)
         return result
 
-    def _run(self, test, result, current_level, concurrency_level, executor, timeout):
+    def _run(self, test, result, current_level, concurrency_level, main_executor, timeout):
         # test is a test suite instance which must be well-formed.
         # A well-formed test suite has a 4-level self-embedded structure:
         #                                    suite obj(root)
@@ -152,38 +157,28 @@ class TestSuite(UnitTestSuite):
         if current_level == concurrency_level:
             self._seq_run(test, result)
         elif current_level < concurrency_level:
-            results = result.children  # Divide: for each sub-suite/case in the test, there is a child result
+            results = result.children  # Divide: for each sub-suite(or test case) in the suite, there is a child result
             if current_level == TestSuite.ROOT_LEVEL:
-                futures_of_setup = [executor.submit(self._setup_module, t, r) for t, r in zip(test, results)]
-                futures = []
-                for done in concurrent.futures.as_completed(futures_of_setup, timeout=timeout):
-                    t, r = done.result()
-                    futures.append(
-                        # This consumes an extra worker for each module if concurrency_level is class or method
-                        executor.submit(self._run, t, r, current_level+1, concurrency_level, executor, timeout)
-                    )
-                futures_of_teardown = []
-                for done in concurrent.futures.as_completed(futures, timeout=timeout):
-                    t, r = done.result()
-                    futures_of_teardown.append(executor.submit(self._teardown_module, t, r))
-                concurrent.futures.wait(futures_of_teardown, timeout=timeout)
+                if concurrency_level == TestSuite.MODULE_LEVEL:
+                    self._handle_fixtures(main_executor, self._setup_module, self._teardown_module,
+                                          test, results, current_level, concurrency_level, main_executor, timeout)
+                else:
+                    with concurrent.futures.ThreadPoolExecutor(len(test)) as executor:
+                        self._handle_fixtures(executor, self._setup_module, self._teardown_module,
+                                              test, results, current_level, concurrency_level, main_executor, timeout)
             elif current_level == TestSuite.MODULE_LEVEL:
-                futures_of_setup = [executor.submit(self._setup_class, t, r) for t, r in zip(test, results)]
-                futures = []
-                for done in concurrent.futures.as_completed(futures_of_setup, timeout=timeout):
-                    t, r = done.result()
-                    futures.append(
-                        # This consumes an extra worker for each class if concurrency_level is method
-                        executor.submit(self._run, t, r, current_level+1, concurrency_level, executor, timeout)
-                    )
-                futures_of_teardown = []
-                for done in concurrent.futures.as_completed(futures, timeout=timeout):
-                    t, r = done.result()
-                    futures_of_teardown.append(executor.submit(self._teardown_class, t, r))
-                concurrent.futures.wait(futures_of_teardown, timeout=timeout)
+                if concurrency_level == TestSuite.CLASS_LEVEL:
+                    self._handle_fixtures(main_executor, self._setup_class, self._teardown_class,
+                                          test, results, current_level, concurrency_level, main_executor, timeout)
+                else:
+                    with concurrent.futures.ThreadPoolExecutor(len(test)) as executor:
+                        self._handle_fixtures(executor, self._setup_class, self._teardown_class,
+                                              test, results, current_level, concurrency_level, main_executor, timeout)
             elif current_level == TestSuite.CLASS_LEVEL:
-                futures = [executor.submit(self._run, t, r, current_level+1, concurrency_level, executor, timeout)
-                           for t, r in zip(test, results)]
+                futures = [
+                    main_executor.submit(self._run, t, r, current_level+1, concurrency_level, main_executor, timeout)
+                    for t, r in zip(test, results)
+                ]
                 concurrent.futures.wait(futures, timeout=timeout)
             combine_results(result, results)  # Conquer: collect child results into parent result
         return test, result
@@ -203,8 +198,25 @@ class TestSuite(UnitTestSuite):
             for t in test:
                 self._seq_run(t, result)
             self._teardown_class(test, result)
-        else:
+        elif level == TestSuite.METHOD_LEVEL:
             test(result)
+        else:
+            raise NotImplementedError
+
+    def _handle_fixtures(self, executor, setup_fn, teardown_fn,
+                         test, results, current_level, concurrency_level, main_executor, timeout):
+        futures_of_setup = [executor.submit(setup_fn, t, r) for t, r in zip(test, results)]
+        futures = []
+        for done in concurrent.futures.as_completed(futures_of_setup, timeout=timeout):
+            t, r = done.result()
+            futures.append(
+                executor.submit(self._run, t, r, current_level+1, concurrency_level, main_executor, timeout)
+            )
+        futures_of_teardown = []
+        for done in concurrent.futures.as_completed(futures, timeout=timeout):
+            t, r = done.result()
+            futures_of_teardown.append(executor.submit(teardown_fn, t, r))
+        concurrent.futures.wait(futures_of_teardown, timeout=timeout)
 
     def _setup_module(self, test, result):
         # test must be a module level suite

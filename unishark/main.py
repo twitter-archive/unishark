@@ -43,11 +43,19 @@ class DefaultTestProgram(TestProgram):
 
     def run(self):
         test = self.test_dict_conf['test']
-        max_workers_on_suites = int(test['max_workers']) if 'max_workers' in test else 1
-        if max_workers_on_suites <= 1:
+        if 'max_workers' in test:  # Deprecation message
+            raise KeyError('Please set "max_workers" in the "concurrency" sub-dict instead.')
+        concurrency = test['concurrency'] if 'concurrency' in test else {
+            'max_workers': 1,
+            'timeout': None
+        }
+        int(concurrency['max_workers'])  # if concurrency key exists, max_workers is required and must be int
+        if 'timeout' not in concurrency:
+            concurrency['timeout'] = None
+        if concurrency['max_workers'] <= 1:
             return self._run_suites_sequentially()
         else:
-            return self._run_suites_concurrently(max_workers_on_suites)
+            return self._run_suites_concurrently(concurrency['max_workers'], concurrency['timeout'])
 
     @staticmethod
     def _get_class_from_name(long_cls_name):
@@ -84,16 +92,16 @@ class DefaultTestProgram(TestProgram):
         for suite_name, suite_content in suites.items():
             package_name = suite_content['package']
             suite = suite_content['suite']
-            max_workers = suite_content['max_workers']
-            concurrency_level = suite_content['concurrency_level']
+            concurrency = suite_content['concurrency']
             result = runner.run(suite, name=suite_name, description='Package: ' + package_name,
-                                max_workers=max_workers, concurrency_level=concurrency_level)
+                                max_workers=concurrency['max_workers'], concurrency_level=concurrency['level'],
+                                timeout=concurrency['timeout'])
             exit_code += 0 if result.wasSuccessful() else 1
         for reporter in self.reporters:
             reporter.collect()
         return exit_code
 
-    def _run_suites_concurrently(self, max_workers_on_suites):
+    def _run_suites_concurrently(self, max_workers_on_suites, timeout):
         exit_code = 0
         suites = unishark.DefaultTestLoader(name_pattern=self.name_pattern).load_tests_from_dict(self.test_dict_conf)
         start_time = time.time()
@@ -102,18 +110,18 @@ class DefaultTestProgram(TestProgram):
             for suite_name, suite_content in suites.items():
                 package_name = suite_content['package']
                 suite = suite_content['suite']
-                max_workers = suite_content['max_workers']
-                concurrency_level = suite_content['concurrency_level']
+                concurrency = suite_content['concurrency']
                 runner = unishark.BufferedTestRunner(reporters=self.reporters,
                                                      verbosity=self.verbosity,
                                                      descriptions=self.descriptions)
                 future = executor.submit(runner.run, suite,
                                          name=suite_name,
                                          description='Package: ' + package_name,
-                                         max_workers=max_workers,
-                                         concurrency_level=concurrency_level)
+                                         max_workers=concurrency['max_workers'],
+                                         concurrency_level=concurrency['level'],
+                                         timeout=concurrency['timeout'])
                 futures.append(future)
-            for future in concurrent.futures.as_completed(futures):
+            for future in concurrent.futures.as_completed(futures, timeout=timeout):
                 result = future.result()
                 exit_code += 0 if result.wasSuccessful() else 1
         actual_duration = time.time() - start_time

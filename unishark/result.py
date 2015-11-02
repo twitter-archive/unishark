@@ -108,6 +108,13 @@ class BufferedTestResult(unittest.TextTestResult):
         self.successes = 0
         self.name = 'test'
         self.description = ''
+        self.children = []
+
+    def __len__(self):
+        return len(self.children)
+
+    def __iter__(self):
+        return iter(self.children)
 
     def _add_result(self, test, duration, status, output, trace_back):
         mod_name = get_module_name(test)

@@ -43,8 +43,7 @@ class DefaultTestLoader:
             suites_dict[suite_name] = {
                 'package': package,
                 'suite': suite,
-                'max_workers': content['max_workers'],
-                'concurrency_level': content['concurrency_level']
+                'concurrency': content['concurrency']
             }
             log.info('Created test suite %r successfully from package %r.' % (suite_name, package))
         return suites_dict
@@ -160,20 +159,34 @@ class DefaultTestLoader:
                     test_cases_names.extend(full_mth_names)
                 else:
                     raise ValueError('Granularity must be one of %r.' % ['package', 'module', 'class', 'method'])
-            max_workers = int(suite['max_workers']) if 'max_workers' in suite else 1
-            concurrency_level = suite['concurrency_level'] if 'concurrency_level' in suite else 'class'
-            concur_levels = ['module', 'class', 'method']
-            if concurrency_level not in concur_levels:
-                raise ValueError('Concurrency level (%r) is not one of %r.' % (concurrency_level, concur_levels))
+            if 'max_workers' in suite or 'concurrency_level' in suite:  # Deprecation message
+                raise KeyError('Please set "max_workers" and "level" in the "concurrency" sub-dict instead.')
+            concurrency = self.__class__._parse_concurrency_conf(suite)
             res_suites[suite_name] = {
                 'package': pkg_name or 'None',
                 'test_case_names': set(test_cases_names),
-                'max_workers': max_workers,
-                'concurrency_level': concurrency_level
+                'concurrency': concurrency
             }
         log.debug('Parsed test config: %r' % res_suites)
         log.info('Parsed test config successfully.')
         return res_suites
+
+    @staticmethod
+    def _parse_concurrency_conf(suite_conf):
+        concurrency = suite_conf['concurrency'] if 'concurrency' in suite_conf else {
+            'max_workers': 1,
+            'level': 'class',
+            'timeout': None
+        }
+        int(concurrency['max_workers'])  # if concurrency key exists, max_workers is required and must be int
+        if 'level' not in concurrency:
+            concurrency['level'] = 'class'
+        concur_levels = ['module', 'class', 'method']
+        if concurrency['level'] not in concur_levels:
+            raise ValueError('Concurrency level (%r) is not one of %r.' % (concurrency['level'], concur_levels))
+        if 'timeout' not in concurrency:
+            concurrency['timeout'] = None
+        return concurrency
 
     def _build_pkg_name_tree(self, pkg_name):
         import pkgutil
