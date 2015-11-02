@@ -11,7 +11,27 @@ log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
 
+def setUpModule():
+    print('%s.setUpModule' % __name__)
+    sleep(0.1)
+
+
+def tearDownModule():
+    print('%s.tearDownModule' % __name__)
+    sleep(0.1)
+
+
 class MyTestClass3(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print('\t%s.%s.setUpClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
+    @classmethod
+    def tearDownClass(cls):
+        print('\t%s.%s.tearDownClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
     def test_5(self):
         """Here is test_5's doc str"""
         log.error('This is a case having an error that is not AssertionError. '
@@ -33,6 +53,16 @@ class MyTestClass3(unittest.TestCase):
 
 
 class MyTestClass4(MyTestClass3):
+    @classmethod
+    def setUpClass(cls):
+        print('\t%s.%s.setUpClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
+    @classmethod
+    def tearDownClass(cls):
+        print('\t%s.%s.tearDownClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
     @unittest.expectedFailure
     def test_8(self):
         """Here is test_8's doc str"""

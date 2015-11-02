@@ -10,7 +10,27 @@ from time import sleep
 log = logging.getLogger(__name__)
 
 
+def setUpModule():
+    print('%s.setUpModule' % __name__)
+    sleep(0.1)
+
+
+def tearDownModule():
+    print('%s.tearDownModule' % __name__)
+    sleep(0.1)
+
+
 class MyTestClass1(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print('\t%s.%s.setUpClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
+    @classmethod
+    def tearDownClass(cls):
+        print('\t%s.%s.tearDownClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
     @unishark.data_driven(*[{'user_id': 1, 'passwd': 'abc'}, {'user_id': 2, 'passwd': 'def'}])
     def repeat_part(self, name, interval=1.0, **param):
         sleep(interval)
@@ -35,6 +55,16 @@ class MyTestClass1(unittest.TestCase):
 
 
 class MyTestClass2(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print('\t%s.%s.setUpClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
+    @classmethod
+    def tearDownClass(cls):
+        print('\t%s.%s.tearDownClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
     @unittest.skip('Here is the reason of skipping test_3')
     def test_3(self):
         """Here is test_3's doc str"""

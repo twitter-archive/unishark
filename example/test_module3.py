@@ -12,6 +12,15 @@ log = logging.getLogger(__name__)
 
 
 class MyTestClass5(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print('\t%s.%s.setUpClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
+    @classmethod
+    def tearDownClass(cls):
+        print('\t%s.%s.tearDownClass' % (__name__, cls.__name__))
+        sleep(0.1)
 
     def test_11(self):
         """Here is test_11's doc str"""
@@ -22,11 +31,21 @@ class MyTestClass5(unittest.TestCase):
     def test_12(self):
         """Here is test_12's doc str"""
         log.info('Here is logging of test_12')
-        sleep(3)
+        sleep(2)
         self.assertEqual(1, 1)
 
 
 class MyTestClass6(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print('\t%s.%s.setUpClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
+    @classmethod
+    def tearDownClass(cls):
+        print('\t%s.%s.tearDownClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
     def test_13(self):
         """Here is test_13's doc str"""
         log.info('Here is logging of test_13')
@@ -36,11 +55,21 @@ class MyTestClass6(unittest.TestCase):
     def test_14(self):
         """Here is test_14's doc str"""
         log.info('Here is logging of test_14')
-        sleep(4)
+        sleep(2)
         self.assertEqual(1, 1)
 
 
 class MyTestClass7(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print('\t%s.%s.setUpClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
+    @classmethod
+    def tearDownClass(cls):
+        print('\t%s.%s.tearDownClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
     def test_15(self):
         """Here is test_15's doc str"""
         log.info('Here is logging of test_15')
@@ -55,6 +84,16 @@ class MyTestClass7(unittest.TestCase):
 
 
 class MyTestClass8(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print('\t%s.%s.setUpClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
+    @classmethod
+    def tearDownClass(cls):
+        print('\t%s.%s.tearDownClass' % (__name__, cls.__name__))
+        sleep(0.1)
+
     @unishark.data_driven(left=list(range(9)))
     @unishark.data_driven(right=list(range(9)))
     def test_17(self, **param):
@@ -65,14 +104,12 @@ class MyTestClass8(unittest.TestCase):
 
     @unishark.multi_threading_data_driven(10, time=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
     def test_18(self, **param):
-        print('Thread %d sleeps %.1f sec.' % (threading.current_thread().ident, param['time']))
         log.info('Thread %d sleeps %.1f sec.' % (threading.current_thread().ident, param['time']))
         sleep(param['time'])
 
     @unishark.multi_threading_data_driven(3, time=[1, 2, 1, 1, 1, 2])
     def _sleep_with_errors(self, **param):
         if param['time'] == 1:
-            print('Thread %d sleeps %.1f sec.' % (threading.current_thread().ident, param['time']))
             log.info('Thread %d sleeps %.1f sec.' % (threading.current_thread().ident, param['time']))
             sleep(param['time'])
         else:
@@ -86,7 +123,6 @@ class MyTestClass8(unittest.TestCase):
     def test_20(self, **param):
         time = param['time1'] * param['time2']
         if time == 1:
-            print('Thread %d sleeps %.1f sec.' % (threading.current_thread().ident, time))
             log.info('Thread %d sleeps %.1f sec.' % (threading.current_thread().ident, time))
             sleep(time)
         else:

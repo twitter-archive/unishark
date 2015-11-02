@@ -2,7 +2,8 @@ version: 1
 
 suites:
   suite_name_1:
-    max_workers: 6
+    concurrency:
+      max_workers: 6
     package: example
     groups:
       group1:
@@ -14,7 +15,8 @@ suites:
         granularity: class
         classes: [test_module3.MyTestClass5, test_module3.MyTestClass6]
   suite_name_2:
-    max_workers: 2
+    concurrency:
+      max_workers: 2
     package: example
     groups:
       group1:
@@ -42,6 +44,7 @@ reporters:
 
 test:
   suites: [suite_name_1, suite_name_2]
-  max_workers: 2
+  concurrency:
+    max_workers: 2
   reporters: [html, xunit]
   name_pattern: '^test\w*'
