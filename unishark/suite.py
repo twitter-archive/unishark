@@ -37,7 +37,7 @@ def _get_level(test):
     else:
         for t in test:
             return _get_level(t) - 1
-        return -1
+        return TestSuite.ROOT_LEVEL
 
 
 def _get_current_module(test):
@@ -105,24 +105,46 @@ class TestSuite(UnitTestSuite):
         self._successful_fixtures = set()
         self._failed_fixtures = set()
 
+    def __len__(self):
+        return len(self._tests)
+
+    def validate(self):
+        assert len(self) > 0
+        for mod_suite in self:
+            assert _is_suite(mod_suite)
+            assert isinstance(mod_suite, TestSuite)
+            assert len(mod_suite) > 0
+            for cls_suite in mod_suite:
+                assert _is_suite(cls_suite)
+                assert isinstance(cls_suite, TestSuite)
+                assert len(cls_suite) > 0
+                for case in cls_suite:
+                    assert not _is_suite(case)
+
     def run(self, result, debug=False, concurrency_level=ROOT_LEVEL, max_workers=1, timeout=None):
         if concurrency_level < TestSuite.ROOT_LEVEL or concurrency_level > TestSuite.METHOD_LEVEL:
             raise ValueError('concurrency_level must be between %d and %d.'
                              % (TestSuite.ROOT_LEVEL, TestSuite.METHOD_LEVEL))
-        if debug or concurrency_level == TestSuite.ROOT_LEVEL or max_workers <= 1:
-            return super(TestSuite, self).run(result, debug)
-        if _get_level(self) != TestSuite.ROOT_LEVEL:
-            raise RuntimeError('Test suite is not well-formed.')
+        if debug or self.countTestCases() <= 0 or max_workers <= 1:
+            return super(TestSuite, self).run(result, debug=debug)
+        self.validate()
+        num_modules = len(self)
+        num_classes = sum([len(mod) for mod in self])
+        # Allocates extra workers to avoid deadlock in recursive _run()
+        if concurrency_level == TestSuite.METHOD_LEVEL:
+            max_workers += num_modules + num_classes
+        elif concurrency_level == TestSuite.CLASS_LEVEL:
+            max_workers += num_modules
         with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
             self._run(self, result, TestSuite.ROOT_LEVEL, concurrency_level, executor, timeout)
         return result
 
     def _run(self, test, result, current_level, concurrency_level, executor, timeout):
         # test is a test suite instance which must be well-formed.
-        # A well-formed test suite has a 4-level self-embedding structure:
-        #                                   suite obj(top level)
-        #                                    /                \
-        #                             suite obj(mod1)      suite obj(mod2)
+        # A well-formed test suite has a 4-level self-embedded structure:
+        #                                    suite obj(root)
+        #                                     /           \
+        #                             suite obj(mod1)    suite obj(mod2)
         #                                /      \                    \
         #               suite obj(mod1.cls1)  suite obj(mod1.cls2)  ...
         #                 /            \                       \
@@ -136,7 +158,10 @@ class TestSuite(UnitTestSuite):
                 futures = []
                 for done in concurrent.futures.as_completed(futures_of_setup, timeout=timeout):
                     t, r = done.result()
-                    futures.append(executor.submit(self._run, t, r, current_level+1, concurrency_level, executor, timeout))
+                    futures.append(
+                        # This consumes an extra worker for each module if concurrency_level is class or method
+                        executor.submit(self._run, t, r, current_level+1, concurrency_level, executor, timeout)
+                    )
                 futures_of_teardown = []
                 for done in concurrent.futures.as_completed(futures, timeout=timeout):
                     t, r = done.result()
@@ -147,7 +172,10 @@ class TestSuite(UnitTestSuite):
                 futures = []
                 for done in concurrent.futures.as_completed(futures_of_setup, timeout=timeout):
                     t, r = done.result()
-                    futures.append(executor.submit(self._run, t, r, current_level+1, concurrency_level, executor, timeout))
+                    futures.append(
+                        # This consumes an extra worker for each class if concurrency_level is method
+                        executor.submit(self._run, t, r, current_level+1, concurrency_level, executor, timeout)
+                    )
                 futures_of_teardown = []
                 for done in concurrent.futures.as_completed(futures, timeout=timeout):
                     t, r = done.result()
@@ -161,19 +189,22 @@ class TestSuite(UnitTestSuite):
         return test, result
 
     def _seq_run(self, test, result):
-        if not _is_suite(test):
-            test(result)
+        level = _get_level(test)
+        if level == TestSuite.ROOT_LEVEL:
+            for t in test:
+                self._seq_run(t, result)
+        elif level == TestSuite.MODULE_LEVEL:
+            self._setup_module(test, result)
+            for t in test:
+                self._seq_run(t, result)
+            self._teardown_module(test, result)
+        elif level == TestSuite.CLASS_LEVEL:
+            self._setup_class(test, result)
+            for t in test:
+                self._seq_run(t, result)
+            self._teardown_class(test, result)
         else:
-            if _get_level(test) == TestSuite.MODULE_LEVEL:
-                self._setup_module(test, result)
-                for t in test:
-                    self._seq_run(t, result)
-                self._teardown_module(test, result)
-            elif _get_level(test) == TestSuite.CLASS_LEVEL:
-                self._setup_class(test, result)
-                for t in test:
-                    self._seq_run(t, result)
-                self._teardown_class(test, result)
+            test(result)
 
     def _setup_module(self, test, result):
         # test must be a module level suite

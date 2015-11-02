@@ -29,4 +29,4 @@ from unishark.main import (TestProgram, DefaultTestProgram, main)
 
 
 PACKAGE = __name__
-VERSION = '0.2.4'
+VERSION = '0.3.0'
