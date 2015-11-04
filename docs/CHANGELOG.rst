@@ -1,7 +1,15 @@
 CHANGELOG
 =========
 
-0.2.3 (2015-09-01)
+0.3.0 (2015-11-06)
+------------------
+
+ - rewrote concurrent execution model. Now test fixtures setUpModule/tearDownModule setUpClass/tearDownClass will be executed once and only once no matter what concurrency level(module/class/method) of a suite is. Fixed the problem that module fixtures were executed multiple times when concurrency level was 'class' or 'method', and class fixtures were executed multiple times when concurrency level was 'method'.
+ - changed the format of the concurrency-related settings in the dict config. Now 'max_workers' and 'level' are keys in the 'concurrency' sub-dict.
+ - moved BufferedTestResult class from the runner module to the new result module which makes more sense.
+
+
+0.2.3 (2015-10-01)
 ------------------
 
  - enable 'module' and 'method' level concurrent execution in a suite.

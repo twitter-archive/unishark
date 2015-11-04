@@ -1,11 +1,11 @@
 INTRODUCTION
 ============
 
-unishark extends unittest (to be more accurate, unittest2) in the
+unishark extends unittest (to be accurate, unittest2) in the
 following ways:
 
 -  Customizing test suites with dictionary config (or yaml/json like config).
--  Running the tests concurrently.
+-  Running the tests concurrently at different levels.
 -  Generating polished test reports in HTML/XUnit formats.
 -  Offering data-driven decorator to accelerate tests writing.
 
@@ -22,7 +22,6 @@ directly in a dict()):
     suites:
       my_suite_name_1:
         package: my.package.name
-        max_workers: 6
         groups:
           my_group_1:
             granularity: module
@@ -34,17 +33,20 @@ directly in a dict()):
             disable: False
             classes: [test_module3.MyTestClass5]
             except_methods: [test_module3.MyTestClass5.test_11]
+        concurrency:
+          level: module
+          max_workers: 2
       my_suite_name_2:
         package: my.package.name
-        max_workers: 2
         groups:
           my_group_1:
             granularity: method
             methods: [test_module3.MyTestClass6.test_13, test_module3.MyTestClass7.test_15]
+        concurrency:
+          level: class
+          max_workers: 2
       my_suite_name_3:
         package: another.package.name
-        max_workers: 20
-        concurrency_level: method
         groups:
           group_1:
             granularity: package
@@ -52,6 +54,9 @@ directly in a dict()):
             except_modules: [module1, module2]
             except_classes: [module3.Class1, module3.Class3]
             except_methods: [module3.Class2.test_1, module4.Class2.test_5]
+        concurrency:
+          level: method
+          max_workers: 20
     reporters:
       html:
         class: unishark.HtmlReporter
@@ -66,13 +71,14 @@ directly in a dict()):
 
     test:
       suites: [my_suite_name_1, my_suite_name_2, my_suite_name_3]
-      max_workers: 3
+      concurrency:
+        max_workers: 3
       reporters: [html, xunit]
       name_pattern: '^test\w*'
 
-It defines 3 test suites with some of the test cases excluded,
-and configures running the defined set of tests with multi-threads (max_workers),
-and generating both HTML and XUnit (default JUnit) format reports at the end of tests.
+It configures 3 test suites with some of the test cases excluded, and running the defined set of tests concurrently (multi-threads), and generating both HTML and XUnit (default JUnit) format reports at the end of tests.
+
+NOTE: For versions below 0.3.0, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '<suite name>'. For versions since 0.3.0, there is 'concurrency' sub-dict.
 
 To run it, simply add the following code:
 
