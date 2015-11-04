@@ -96,8 +96,8 @@ def _fn_with_traceback(fn, *args, **kwargs):
 
 
 def _handle_futures(futures):
-    results = list(map(lambda x: x.result(), concurrent.futures.as_completed(futures)))
-    idents = list(map(lambda r: r[0], results))
+    results = [f.result() for f in concurrent.futures.as_completed(futures)]
+    idents = [r[0] for r in results]
     for ident in idents:
         if ident in out.buff_dict:
             buff = out.buff_dict.pop(ident)
@@ -105,6 +105,6 @@ def _handle_futures(futures):
             buff.seek(0)
             buff.truncate()
             out.buff_queue.append(buff)
-    exc_info_strs = list(filter(lambda e: e is not None, list(map(lambda r: r[1], results))))
+    exc_info_strs = [r[1] for r in results if r[1] is not None]
     if exc_info_strs:
         raise MultipleErrors(exc_info_strs)
