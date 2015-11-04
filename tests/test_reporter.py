@@ -103,5 +103,6 @@ class ReporterTestCase(unittest.TestCase):
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(ReporterTestCase)
     rslt = unittest.TextTestRunner(verbosity=2).run(suite)
+    print('Successful: %r' % rslt.wasSuccessful())
     import sys
     sys.exit(0 if rslt.wasSuccessful() else 1)

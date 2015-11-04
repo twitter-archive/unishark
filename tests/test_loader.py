@@ -1021,8 +1021,10 @@ class LoaderTestCase(unittest.TestCase):
             'suites': {
                 'my_suite_1': {
                     'package': 'tests.mock1',
-                    'max_workers': 2,
-                    'concurrency_level': 'module',
+                    'concurrency': {
+                        'max_workers': 2,
+                        'level': 'module'
+                    },
                     'groups': {
                         'g1': {
                             'granularity': 'class',
@@ -1039,8 +1041,10 @@ class LoaderTestCase(unittest.TestCase):
                 },
                 'my_suite_2': {
                     'package': 'tests.mock2',
-                    'max_workers': 2,
-                    'concurrency_level': 'method',
+                    'concurrency': {
+                        'max_workers': 2,
+                        'level': 'method'
+                    },
                     'groups': {
                         'g1': {
                             'granularity': 'method',
@@ -1055,15 +1059,17 @@ class LoaderTestCase(unittest.TestCase):
             }
         }
         suite_dict = self.loader.load_tests_from_dict(dict_conf)
-        self.assertEqual(suite_dict['my_suite_1']['concurrency_level'], 'module')
-        self.assertEqual(suite_dict['my_suite_2']['concurrency_level'], 'method')
+        self.assertEqual(suite_dict['my_suite_1']['concurrency']['level'], 'module')
+        self.assertEqual(suite_dict['my_suite_2']['concurrency']['level'], 'method')
 
     def test_concurrency_level_class(self):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
                     'package': 'tests.mock1',
-                    'max_workers': 2,
+                    'concurrency': {
+                        'max_workers': 2
+                    },
                     'groups': {
                         'g1': {
                             'granularity': 'class',
@@ -1080,7 +1086,10 @@ class LoaderTestCase(unittest.TestCase):
                 },
                 'my_suite_2': {
                     'package': 'tests.mock2',
-                    'concurrency_level': 'class',
+                    'concurrency': {
+                        'max_workers': 1,
+                        'level': 'class'
+                    },
                     'groups': {
                         'g1': {
                             'granularity': 'method',
@@ -1095,16 +1104,18 @@ class LoaderTestCase(unittest.TestCase):
             }
         }
         suite_dict = self.loader.load_tests_from_dict(dict_conf)
-        self.assertEqual(suite_dict['my_suite_1']['concurrency_level'], 'class')
-        self.assertEqual(suite_dict['my_suite_2']['concurrency_level'], 'class')
+        self.assertEqual(suite_dict['my_suite_1']['concurrency']['level'], 'class')
+        self.assertEqual(suite_dict['my_suite_2']['concurrency']['level'], 'class')
 
-    def test_invalid_concurrency_level(self):
+    def test_illegal_concurrency_level(self):
         dict_conf = {
             'suites': {
                 'my_suite_1': {
                     'package': 'tests.mock1',
-                    'max_workers': 2,
-                    'concurrency_level': 'mod',
+                    'concurrency': {
+                        'max_workers': 1,
+                        'level': 'mod'
+                    },
                     'groups': {
                         'g1': {
                             'granularity': 'class',
@@ -1128,6 +1139,117 @@ class LoaderTestCase(unittest.TestCase):
             self.loader.load_tests_from_dict(dict_conf)
         self.assertEqual(str(cm.exception), "Concurrency level ('mod') is not one of ['module', 'class', 'method'].")
 
+    def test_default_concurrency_setting(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'package': 'tests.mock1',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'module',
+                            'modules': ['test_module1']
+                        }
+                    }
+                }
+            },
+            'test': {
+                'suites': ['my_suite_1']
+            }
+        }
+        suite_dict = self.loader.load_tests_from_dict(dict_conf)
+        self.assertEqual(suite_dict['my_suite_1']['concurrency']['max_workers'], 1)
+        self.assertEqual(suite_dict['my_suite_1']['concurrency']['level'], 'class')
+        self.assertIs(suite_dict['my_suite_1']['concurrency']['timeout'], None)
+
+    def test_missing_max_workers(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'concurrency': {},
+                    'package': 'tests.mock1',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'module',
+                            'modules': ['test_module1']
+                        }
+                    }
+                }
+            },
+            'test': {
+                'suites': ['my_suite_1']
+            }
+        }
+        with self.assertRaises(KeyError):
+            self.loader.load_tests_from_dict(dict_conf)
+
+    def test_illegal_max_workers_type(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'concurrency': {
+                        'max_workers': 'a'
+                    },
+                    'package': 'tests.mock1',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'module',
+                            'modules': ['test_module1']
+                        }
+                    }
+                }
+            },
+            'test': {
+                'suites': ['my_suite_1']
+            }
+        }
+        with self.assertRaises(ValueError):
+            self.loader.load_tests_from_dict(dict_conf)
+
+    def test_misplacing_max_workers(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'max_workers': 1,
+                    'package': 'tests.mock1',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'module',
+                            'modules': ['test_module1']
+                        }
+                    }
+                }
+            },
+            'test': {
+                'suites': ['my_suite_1']
+            }
+        }
+        with self.assertRaises(KeyError) as cm:
+            self.loader.load_tests_from_dict(dict_conf)
+            self.assertEqual(cm.exception.message,
+                             'Please set "max_workers" and "level" in the "concurrency" sub-dict instead.')
+
+    def test_misplacing_concurrency_level(self):
+        dict_conf = {
+            'suites': {
+                'my_suite_1': {
+                    'concurrency_level': 'module',
+                    'package': 'tests.mock1',
+                    'groups': {
+                        'g1': {
+                            'granularity': 'module',
+                            'modules': ['test_module1']
+                        }
+                    }
+                }
+            },
+            'test': {
+                'suites': ['my_suite_1']
+            }
+        }
+        with self.assertRaises(KeyError) as cm:
+            self.loader.load_tests_from_dict(dict_conf)
+            self.assertEqual(cm.exception.message,
+                             'Please set "max_workers" and "level" in the "concurrency" sub-dict instead.')
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

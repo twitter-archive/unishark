@@ -13,7 +13,8 @@
 # limitations under the License.
 
 
-from unittest.suite import TestSuite as UnitTestSuite
+from unittest.suite import TestSuite as UnitTestSuite, _ErrorHolder
+from unittest.case import SkipTest
 import sys
 from unishark.util import get_module_name
 from unishark.result import combine_results
@@ -218,6 +219,14 @@ class TestSuite(UnitTestSuite):
             futures_of_teardown.append(executor.submit(teardown_fn, t, r))
         concurrent.futures.wait(futures_of_teardown, timeout=timeout)
 
+    def _addClassOrModuleLevelException(self, result, exception, error_name):
+        error = FixtureErrors(error_name)
+        addSkip = getattr(result, 'addSkip', None)
+        if addSkip is not None and isinstance(exception, SkipTest):
+            addSkip(error, str(exception))
+        else:
+            result.addError(error, sys.exc_info())
+
     def _setup_module(self, test, result):
         # test must be a module level suite
         current_module = _get_current_module(test)
@@ -237,7 +246,7 @@ class TestSuite(UnitTestSuite):
                 self._successful_fixtures.add(fixture_name)
             except Exception as e:
                 self._failed_fixtures.add(fixture_name)
-                error_name = 'setUpModule (%s)' % current_module
+                error_name = '%s:setUpModule' % current_module
                 self._addClassOrModuleLevelException(result, e, error_name)
             finally:
                 _call_if_exists(result, '_restoreStdout')
@@ -264,7 +273,7 @@ class TestSuite(UnitTestSuite):
                 self._successful_fixtures.add(fixture_name)
             except Exception as e:
                 self._failed_fixtures.add(fixture_name)
-                error_name = 'tearDownModule (%s)' % current_module
+                error_name = '%s:tearDownModule' % current_module
                 self._addClassOrModuleLevelException(result, e, error_name)
             finally:
                 _call_if_exists(result, '_restoreStdout')
@@ -291,7 +300,7 @@ class TestSuite(UnitTestSuite):
             except Exception as e:
                 self._failed_fixtures.add(fixture_name)
                 current_class._classSetupFailed = True
-                error_name = 'setUpClass (%s)' % class_name
+                error_name = '%s:setUpClass' % current_class.__name__
                 self._addClassOrModuleLevelException(result, e, error_name)
             finally:
                 _call_if_exists(result, '_restoreStdout')
@@ -320,7 +329,15 @@ class TestSuite(UnitTestSuite):
                 self._successful_fixtures.add(fixture_name)
             except Exception as e:
                 self._failed_fixtures.add(fixture_name)
-                error_name = 'tearDownClass (%s)' % class_name
+                error_name = '%s:tearDownClass' % current_class.__name__
                 self._addClassOrModuleLevelException(result, e, error_name)
             finally:
                 _call_if_exists(result, '_restoreStdout')
+
+
+class FixtureErrors(_ErrorHolder):
+    def __init__(self, description):
+        super(FixtureErrors, self).__init__(description)
+
+    def id(self):
+        return "%s.%s" % (self.__class__.__name__, self.description)
