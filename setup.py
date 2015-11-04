@@ -23,8 +23,8 @@ setup(
     name=NAME,
     version=VERSION,
 
-    description='A lightweight unittest extension providing test suites config, concurrent tests, Html/XUnit reports, '
-                'and data driven utility.',
+    description='A lightweight unittest extension providing flexible test suites config, concurrent execution, '
+                'Html/XUnit reports, and data driven utility.',
     long_description=long_description,
 
     url='https://github.com/twitter/unishark',
@@ -49,9 +49,10 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ],
 
-    keywords='unittest extension test framework reports config parameterization',
+    keywords='unittest extension test framework reports data-driven',
 
     # See https://packaging.python.org/en/latest/requirements.html
     install_requires=requires,
