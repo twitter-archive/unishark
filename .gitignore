@@ -52,3 +52,9 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
