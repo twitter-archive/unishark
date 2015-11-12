@@ -303,35 +303,42 @@ class RunnerTestCase(unittest.TestCase):
         mod5_name = 'test_concur5'
         cls1_name = 'Class1'
         cls2_name = 'Class2'
+        case1_name = 'test_case_1'
+        case2_name = 'test_case_2'
         self.suite = self.loader.loadTestsFromNames(['tests.mock3.test_concur3',
                                                      'tests.mock3.test_concur4',
                                                      'tests.mock3.test_concur5'])
         result = self.runner.run(self.suite, max_workers=12, concurrency_level='method')
-        self.assertEqual(result.successes, 2)
-        self.assertTrue(len(result.errors) == 12 or len(result.errors) == 6 and len(result.failures) == 6)
+        self.assertEqual(result.successes, 0)
+        self.assertEqual(len(result.errors), 8)
+        self.assertEqual(len(result.failures), 0)
         self.assertEqual(len(result.skipped), 2)
         order = unishark.contexts.get(self.__context__)
         # mod3 setUpModule failed
-        self.assertEqual(order.count('%s.setUpModule' % mod3_name), 1)
-        self.assertNotIn('%s.tearDownModule' % mod3_name, order)
-        self.assertNotIn('%s.%s.setUpClass' % (mod3_name, cls1_name), order)
-        self.assertNotIn('%s.%s.tearDownClass' % (mod3_name, cls1_name), order)
-        self.assertNotIn('%s.%s.setUpClass' % (mod3_name, cls2_name), order)
-        self.assertNotIn('%s.%s.tearDownClass' % (mod3_name, cls2_name), order)
+        mod3_order = self.get_mod_order(mod3_name, order)
+        self.assertListEqual(mod3_order, ['%s.setUpModule' % mod3_name])
         # mod4.Class1 setUpClass failed, mod4.Class2 skipped
-        self.assertEqual(order.count('%s.setUpModule' % mod4_name), 1)
-        self.assertEqual(order.count('%s.tearDownModule' % mod4_name), 1)
-        self.assertEqual(order.count('%s.%s.setUpClass' % (mod4_name, cls1_name)), 1)
-        self.assertNotIn('%s.%s.tearDownClass' % (mod4_name, cls1_name), order)
-        self.assertNotIn('%s.%s.setUpClass' % (mod4_name, cls2_name), order)
-        self.assertNotIn('%s.%s.tearDownClass' % (mod4_name, cls2_name), order)
+        mod4_order = self.get_mod_order(mod4_name, order)
+        self.assertListEqual(mod4_order, ['%s.setUpModule' % mod4_name,
+                                          '%s.%s.setUpClass' % (mod4_name, cls1_name),
+                                          '%s.tearDownModule' % mod4_name])
         # mod5 tearDownModule and mod5.Class1 tearDownClass failed
-        self.assertEqual(order.count('%s.setUpModule' % mod5_name), 1)
-        self.assertEqual(order.count('%s.tearDownModule' % mod5_name), 1)
-        self.assertEqual(order.count('%s.%s.setUpClass' % (mod5_name, cls1_name)), 1)
-        self.assertEqual(order.count('%s.%s.tearDownClass' % (mod5_name, cls1_name)), 1)
-        self.assertEqual(order.count('%s.%s.setUpClass' % (mod5_name, cls2_name)), 1)
-        self.assertEqual(order.count('%s.%s.tearDownClass' % (mod5_name, cls2_name)), 1)
+        # mod5.Class1.tearDown failed and mod5.Class2.setUp failed
+        mod5_order = self.get_mod_order(mod5_name, order)
+        self.check_mod_fixtures(mod5_name, mod5_order)
+        mod5_cls1_order = self.get_cls_order('%s.%s' % (mod5_name, cls1_name), order)
+        mod5_cls2_order = self.get_cls_order('%s.%s' % (mod5_name, cls2_name), order)
+        self.check_cls_fixtures('%s.%s' % (mod5_name, cls1_name), mod5_cls1_order)
+        self.check_cls_fixtures('%s.%s' % (mod5_name, cls2_name), mod5_cls2_order)
+        self.check_cls_in_parallel('%s.%s' % (mod5_name, cls1_name), '%s.%s' % (mod5_name, cls2_name), mod5_order)
+        self.assertIn('%s.%s.%s.setUp' % (mod5_name, cls1_name, case1_name), mod5_cls1_order)
+        self.assertIn('%s.%s.%s.setUp' % (mod5_name, cls1_name, case2_name), mod5_cls1_order)
+        self.assertIn('%s.%s.%s.tearDown' % (mod5_name, cls1_name, case1_name), mod5_cls1_order)
+        self.assertIn('%s.%s.%s.tearDown' % (mod5_name, cls1_name, case2_name), mod5_cls1_order)
+        self.assertIn('%s.%s.%s.setUp' % (mod5_name, cls2_name, case1_name), mod5_cls2_order)
+        self.assertIn('%s.%s.%s.setUp' % (mod5_name, cls2_name, case2_name), mod5_cls2_order)
+        self.assertNotIn('%s.%s.%s.tearDown' % (mod5_name, cls2_name, case1_name), mod5_cls2_order)
+        self.assertNotIn('%s.%s.%s.tearDown' % (mod5_name, cls2_name, case2_name), mod5_cls2_order)
 
 
 if __name__ == '__main__':

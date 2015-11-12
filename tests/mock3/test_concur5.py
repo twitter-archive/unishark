@@ -52,6 +52,7 @@ class Class1(unittest.TestCase):
         self.assertEqual(mod_resource, 1)
         self.assertEqual(self.__class__.cls_resource, 1)
         sleep(0.1)
+        raise RuntimeError('Let tearDown fail.')
 
     def test_case_1(self):
         self.assertEqual(mod_resource, 1)
@@ -93,7 +94,8 @@ class Class2(unittest.TestCase):
         sleep(0.1)
         fixture = '%s.tearDown' % '.'.join(self.id().split('.')[-3:])
         contexts.get(__context__).append(fixture)
-        raise RuntimeError('Let tearDown fail.')
+        self.assertEqual(mod_resource, 1)
+        self.assertEqual(self.__class__.cls_resource, 1)
 
     def test_case_1(self):
         self.assertEqual(mod_resource, 1)

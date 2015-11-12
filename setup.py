@@ -3,7 +3,7 @@ from os import path
 from sys import version_info
 
 NAME = 'unishark'
-VERSION = '0.3.0'
+VERSION = '0.3.1'
 
 long_description = (
     open(path.join('docs', 'README.rst'), 'r').read() + '\n' +
@@ -23,7 +23,7 @@ setup(
     name=NAME,
     version=VERSION,
 
-    description='A lightweight unittest extension providing flexible test suites config, concurrent execution, '
+    description='A test framework extending unittest, providing flexible test suites config, concurrent execution, '
                 'Html/XUnit reports, and data driven utility.',
     long_description=long_description,
 
@@ -36,7 +36,7 @@ setup(
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
 
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Testing',
@@ -52,7 +52,7 @@ setup(
         'Programming Language :: Python :: 3.5',
     ],
 
-    keywords='unittest extension test framework reports data-driven',
+    keywords='test framework, unittest extension, concurrent, data driven',
 
     # See https://packaging.python.org/en/latest/requirements.html
     install_requires=requires,

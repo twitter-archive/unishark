@@ -200,6 +200,12 @@ class TestSuite(UnitTestSuite):
                 self._seq_run(t, result)
             self._teardown_class(test, result)
         elif level == TestSuite.METHOD_LEVEL:
+            current_class = test.__class__
+            current_module = current_class.__module__
+            if current_module + '.setUpModule' in self._failed_fixtures:
+                return
+            if '.'.join((current_module, current_class.__name__, 'setUpClass')) in self._failed_fixtures:
+                return
             test(result)
         else:
             raise NotImplementedError
@@ -300,7 +306,7 @@ class TestSuite(UnitTestSuite):
             except Exception as e:
                 self._failed_fixtures.add(fixture_name)
                 current_class._classSetupFailed = True
-                error_name = '%s:setUpClass' % current_class.__name__
+                error_name = '%s:%s:setUpClass' % (current_module, current_class.__name__)
                 self._addClassOrModuleLevelException(result, e, error_name)
             finally:
                 _call_if_exists(result, '_restoreStdout')
@@ -329,7 +335,7 @@ class TestSuite(UnitTestSuite):
                 self._successful_fixtures.add(fixture_name)
             except Exception as e:
                 self._failed_fixtures.add(fixture_name)
-                error_name = '%s:tearDownClass' % current_class.__name__
+                error_name = '%s:%s:tearDownClass' % (current_module, current_class.__name__)
                 self._addClassOrModuleLevelException(result, e, error_name)
             finally:
                 _call_if_exists(result, '_restoreStdout')
@@ -338,6 +344,7 @@ class TestSuite(UnitTestSuite):
 class FixtureErrors(_ErrorHolder):
     def __init__(self, description):
         super(FixtureErrors, self).__init__(description)
+        self.description = self.description.replace('.', ':')
 
     def id(self):
         return "%s.%s" % (self.__class__.__name__, self.description)
