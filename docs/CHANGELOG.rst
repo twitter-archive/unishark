@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+0.3.1 (2015-11-12)
+------------------
+
+ - fixed the issue of still running test methods even when setUpClass/setUpModule raises exception in concurrency mode.
+ - fixed error descriptions of class or module level fixtures when they raise exceptions.
+
+
 0.3.0 (2015-11-06)
 ------------------
 
