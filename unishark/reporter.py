@@ -21,6 +21,7 @@ import abc
 import unishark
 from unishark.result import (PASS, SKIPPED, ERROR, FAIL, EXPECTED_FAIL, UNEXPECTED_PASS)
 import threading
+import multiprocessing
 
 _status_to_str = {
     PASS: 'Passed',
@@ -36,7 +37,8 @@ class Reporter(object):
     """Base class of all reporter classes"""
     __metaclass__ = abc.ABCMeta
 
-    lock = threading.RLock()
+    thread_lock = threading.RLock()
+    process_lock = multiprocessing.RLock()
 
     def __init__(self):
         self._actual_duration = None
@@ -51,6 +53,49 @@ class Reporter(object):
     @abc.abstractmethod
     def collect(self):
         pass
+
+
+class TemplatesReporter(Reporter):
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self):
+        super(TemplatesReporter, self).__init__()
+        self.use_default_templates = False
+        self.templates_path = None
+        self.jinja_env = None
+        self.dest = None
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        if 'jinja_env' in state:
+            del state['jinja_env']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.__dict__['jinja_env'] = self.make_jinja_env()
+
+    @abc.abstractmethod
+    def report(self, result):
+        pass
+
+    @abc.abstractmethod
+    def collect(self):
+        pass
+
+    def make_jinja_env(self):
+        if self.use_default_templates:
+            loader = jinja2.PackageLoader(unishark.PACKAGE, package_path=self.templates_path, encoding='utf-8')
+        else:
+            loader = jinja2.FileSystemLoader(self.templates_path, encoding='utf-8')
+        return jinja2.Environment(loader=loader, autoescape=False)
+
+    def make_output_dir(self):
+        with Reporter.process_lock:
+            with Reporter.thread_lock:
+                if self.dest:
+                    if not os.path.exists(self.dest):
+                        os.makedirs(self.dest)
 
 
 class Summary(object):
@@ -83,19 +128,19 @@ class Summary(object):
 class TestsSummary(Summary):
     def __init__(self, name):
         super(TestsSummary, self).__init__(name)
-        self.suite_sum_list = []
+        self.suite_sum_list = multiprocessing.Manager().list()
 
     def build(self, actual_duration=None):
         if self.suite_sum_list:
             if actual_duration is not None:
                 self.duration = actual_duration
             else:
-                self.duration = sum(map(lambda s: s.duration, self.suite_sum_list))
-            self.run = sum(map(lambda s: s.run, self.suite_sum_list))
-            self.passed = sum(map(lambda s: s.passed, self.suite_sum_list))
-            self.skipped = sum(map(lambda s: s.skipped, self.suite_sum_list))
-            self.error = sum(map(lambda s: s.error, self.suite_sum_list))
-            self.fail = sum(map(lambda s: s.fail, self.suite_sum_list))
+                self.duration = sum([s.duration for s in self.suite_sum_list])
+            self.run = sum([s.run for s in self.suite_sum_list])
+            self.passed = sum([s.passed for s in self.suite_sum_list])
+            self.skipped = sum([s.skipped for s in self.suite_sum_list])
+            self.error = sum([s.error for s in self.suite_sum_list])
+            self.fail = sum([s.fail for s in self.suite_sum_list])
             self.round_duration()
             self.calc_category()
             self.calc_rate()
@@ -185,7 +230,27 @@ class MethodSummary(Summary):
         self.trace_back = trace_back
 
 
-class HtmlReporter(Reporter):
+@jinja2.evalcontextfilter
+def _nl2br(eval_ctx, text):
+    paragraph_re = re.compile(r'(?:\r\n|\r|\n){2,}')
+    result = u'\n\n'.join(paragraph_re.split(jinja2.escape(text)))
+    result = result.replace('\n', '<br/>\n')
+    if eval_ctx.autoescape:
+        result = jinja2.Markup(result)
+    return result
+
+
+@jinja2.evalcontextfilter
+def _pre(eval_ctx, value):
+    _paragraph_re = re.compile(r'(?:\r\n|\r|\n){2,}')
+    text = u'\n\n'.join(u'<pre>%s</pre>' % p
+                        for p in _paragraph_re.split(jinja2.escape(value)))
+    if eval_ctx.autoescape:
+        text = jinja2.Markup(text)
+    return text
+
+
+class HtmlReporter(TemplatesReporter):
     def __init__(self, dest='results',
                  overview_title='Reports',
                  overview_description='',
@@ -198,46 +263,31 @@ class HtmlReporter(Reporter):
         self._tests_sum = TestsSummary(overview_title)
         self._tests_sum.description = overview_description
         if templates_path and report_template and overview_template and index_template:
-            loader = jinja2.FileSystemLoader(templates_path, encoding='utf-8')
+            self.use_default_templates = False
+            self.templates_path = templates_path
             self.report_template = report_template
             self.overview_template = overview_template
             self.index_template = index_template
         else:
-            loader = jinja2.PackageLoader(unishark.PACKAGE, package_path='templates', encoding='utf-8')
+            self.use_default_templates = True
+            self.templates_path = 'templates'
             self.report_template = 'report.html'
             self.overview_template = 'overview.html'
             self.index_template = 'index.html'
-        self.jinja_env = jinja2.Environment(loader=loader, autoescape=False)
-
+        self.jinja_env = self.make_jinja_env()
         # Add converting newline to <br> filter
-        @jinja2.evalcontextfilter
-        def nl2br(eval_ctx, text):
-            paragraph_re = re.compile(r'(?:\r\n|\r|\n){2,}')
-            result = u'\n\n'.join(paragraph_re.split(jinja2.escape(text)))
-            result = result.replace('\n', '<br/>\n')
-            if eval_ctx.autoescape:
-                result = jinja2.Markup(result)
-            return result
-        self.jinja_env.filters['nl2br'] = nl2br
-
+        self.jinja_env.filters['nl2br'] = _nl2br
         # Add <pre> tag wrapper filter
-        @jinja2.evalcontextfilter
-        def pre(eval_ctx, value):
-            _paragraph_re = re.compile(r'(?:\r\n|\r|\n){2,}')
-            text = u'\n\n'.join(u'<pre>%s</pre>' % p
-                                for p in _paragraph_re.split(jinja2.escape(value)))
-            if eval_ctx.autoescape:
-                text = jinja2.Markup(text)
-            return text
-        self.jinja_env.filters['pre'] = pre
+        self.jinja_env.filters['pre'] = _pre
 
-    def _make_output_dir(self):
-        with Reporter.lock:
-            if not os.path.exists(self.dest):
-                os.makedirs(self.dest)
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.__dict__['jinja_env'] = self.make_jinja_env()
+        self.__dict__['jinja_env'].filters['nl2br'] = _nl2br
+        self.__dict__['jinja_env'].filters['pre'] = _pre
 
     def report(self, result):
-        self._make_output_dir()
+        self.make_output_dir()
         # Heading
         date_time = str(datetime.datetime.now())
         app = unishark.PACKAGE
@@ -258,7 +308,7 @@ class HtmlReporter(Reporter):
         self._tests_sum.suite_sum_list.append(suite_sum)
 
     def collect(self):
-        self._make_output_dir()
+        self.make_output_dir()
         self._generate_overview()
         self._generate_index()
 
@@ -285,7 +335,7 @@ class HtmlReporter(Reporter):
             f.write(html)
 
 
-class XUnitReporter(Reporter):
+class XUnitReporter(TemplatesReporter):
     def __init__(self, dest='results',
                  summary_title='XUnit Reports',
                  templates_path=None,
@@ -295,22 +345,19 @@ class XUnitReporter(Reporter):
         self.dest = dest
         self._tests_sum = TestsSummary(summary_title)
         if templates_path and report_template and summary_template:
-            loader = jinja2.FileSystemLoader(templates_path, encoding='utf-8')
+            self.use_default_templates = False
+            self.templates_path = templates_path
             self.report_template = report_template
             self.summary_template = summary_template
         else:
-            loader = jinja2.PackageLoader(unishark.PACKAGE, package_path='templates', encoding='utf-8')
+            self.use_default_templates = True
+            self.templates_path = 'templates'
             self.report_template = 'junit_suite_result.xml'
             self.summary_template = 'junit_suites_result.xml'
-        self.jinja_env = jinja2.Environment(loader=loader, autoescape=False)
-
-    def _make_output_dir(self):
-        with Reporter.lock:
-            if not os.path.exists(self.dest):
-                os.makedirs(self.dest)
+        self.jinja_env = self.make_jinja_env()
 
     def report(self, result):
-        self._make_output_dir()
+        self.make_output_dir()
         # Summary
         suite_sum = SuiteSummary(result.name)
         suite_sum.build(result)
@@ -329,7 +376,7 @@ class XUnitReporter(Reporter):
         self._tests_sum.suite_sum_list.append(suite_sum)
 
     def collect(self):
-        self._make_output_dir()
+        self.make_output_dir()
         # Summary
         self._tests_sum.build(actual_duration=self._actual_duration)
         # Generate test suites summary

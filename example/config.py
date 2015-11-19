@@ -6,7 +6,7 @@ import os
 
 class Configuration(object):
     def __init__(self):
-        self.cur_dir = os.path.dirname(os.path.realpath(__file__))
+        self.cur_dir = os.path.dirname(os.path.abspath(__file__))
         self.conf_dir = os.path.join(self.cur_dir, 'config')
         self._set_logging()
 

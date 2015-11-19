@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
+from unittest import TextTestRunner
 from unishark.suite import TestSuite, convert
-from unishark.result import BufferedTestResult, out
+from unishark.result import BufferedTestResult, out, WritelnDecorator
 from unishark.reporter import Reporter
 from unittest.signals import registerResult
 import time
 import warnings
 import logging
-
+from sys import stderr
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ _concurrency_level_to_int = {
 }
 
 
-class BufferedTestRunner(unittest.TextTestRunner):
+class BufferedTestRunner(TextTestRunner):
     def __init__(self, reporters=None, verbosity=1, descriptions=False):
         super(BufferedTestRunner, self).__init__(buffer=False,
                                                  verbosity=verbosity,
@@ -45,6 +45,18 @@ class BufferedTestRunner(unittest.TextTestRunner):
         for reporter in self.reporters:
             if not isinstance(reporter, Reporter):
                 raise TypeError
+
+    def __getstate__(self):
+        # called before pickling
+        state = self.__dict__.copy()
+        if 'stream' in state:
+            del state['stream']
+        return state
+
+    def __setstate__(self, state):
+        # called while unpickling
+        self.__dict__.update(state)
+        self.__dict__['stream'] = WritelnDecorator(stderr)
 
     def make_result(self):
         return self.resultclass(self.stream, self.descriptions, self.verbosity)

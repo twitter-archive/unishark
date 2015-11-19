@@ -45,6 +45,7 @@ reporters:
 test:
   suites: [suite_name_1, suite_name_2]
   concurrency:
+    type: processes
     max_workers: 2
   reporters: [html, xunit]
   name_pattern: '^test\w*'

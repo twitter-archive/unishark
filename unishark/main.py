@@ -39,23 +39,34 @@ class DefaultTestProgram(TestProgram):
             self.name_pattern = self.test_dict_conf['test']['name_pattern']
         self.verbosity = verbosity
         self.descriptions = descriptions
-        self.reporters = self._make_reporters()
+        self.reporters = self._parse_reporters()
+        self.concurrency = self._parse_suites_concurrency()
 
     def run(self):
+        if self.concurrency['max_workers'] <= 1:
+            return self._run_suites_sequentially()
+        else:
+            return self._run_suites_concurrently(self.concurrency['type'], self.concurrency['max_workers'],
+                                                 self.concurrency['timeout'])
+
+    def _parse_suites_concurrency(self):
         test = self.test_dict_conf['test']
         if 'max_workers' in test:  # Deprecation message
             raise KeyError('Please set "max_workers" in the "concurrency" sub-dict instead.')
         concurrency = test['concurrency'] if 'concurrency' in test else {
+            'type': 'threads',
             'max_workers': 1,
             'timeout': None
         }
         int(concurrency['max_workers'])  # if concurrency key exists, max_workers is required and must be int
         if 'timeout' not in concurrency:
             concurrency['timeout'] = None
-        if concurrency['max_workers'] <= 1:
-            return self._run_suites_sequentially()
-        else:
-            return self._run_suites_concurrently(concurrency['max_workers'], concurrency['timeout'])
+        if 'type' not in concurrency:
+            concurrency['type'] = 'threads'
+        concur_types = ['threads', 'processes']
+        if concurrency['type'] not in concur_types:
+            raise ValueError('Concurrency type is not one of %r.' % concur_types)
+        return concurrency
 
     @staticmethod
     def _get_class_from_name(long_cls_name):
@@ -68,7 +79,7 @@ class DefaultTestProgram(TestProgram):
             raise TypeError('Class is not a subclass of Reporter.')
         return cls
 
-    def _make_reporters(self):
+    def _parse_reporters(self):
         created_reporters = []
         test = self.test_dict_conf['test']
         reporters = self.test_dict_conf['reporters'] if 'reporters' in self.test_dict_conf else dict()
@@ -101,11 +112,15 @@ class DefaultTestProgram(TestProgram):
             reporter.collect()
         return exit_code
 
-    def _run_suites_concurrently(self, max_workers_on_suites, timeout):
+    def _run_suites_concurrently(self, concurrency_type, max_workers_on_suites, timeout):
         exit_code = 0
         suites = unishark.DefaultTestLoader(name_pattern=self.name_pattern).load_tests_from_dict(self.test_dict_conf)
+        if concurrency_type == 'processes':
+            pool = concurrent.futures.ProcessPoolExecutor
+        else:
+            pool = concurrent.futures.ThreadPoolExecutor
         start_time = time.time()
-        with concurrent.futures.ThreadPoolExecutor(max_workers_on_suites) as executor:
+        with pool(max_workers_on_suites) as executor:
             futures = []
             for suite_name, suite_content in suites.items():
                 package_name = suite_content['package']
@@ -121,14 +136,19 @@ class DefaultTestProgram(TestProgram):
                                          concurrency_level=concurrency['level'],
                                          timeout=concurrency['timeout'])
                 futures.append(future)
-            for future in concurrent.futures.as_completed(futures, timeout=timeout):
-                result = future.result()
-                exit_code += 0 if result.wasSuccessful() else 1
+            results = [future.result() for future in concurrent.futures.as_completed(futures, timeout=timeout)]
         actual_duration = time.time() - start_time
         log.info('Actual total time taken: %.3fs' % actual_duration)
-        for reporter in self.reporters:
-            reporter.set_actual_duration(actual_duration)
-            reporter.collect()
+        for result in results:
+            exit_code += 0 if result.wasSuccessful() else 1
+        if len(self.reporters):
+            log.info('Summarizing reports of suites.')
+            start_time = time.time()
+            with pool(len(self.reporters)) as exe:
+                for reporter in self.reporters:
+                    reporter.set_actual_duration(actual_duration)
+                    exe.submit(reporter.collect)
+            log.info('Took %.3fs to summarize reports.' % (time.time() - start_time))
         return exit_code
 
 

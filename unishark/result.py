@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
+from unittest import TextTestResult
+from unittest.runner import _WritelnDecorator as WritelnDecorator
 import time
-import sys
+from sys import stdout, stderr, version_info
 import traceback
 from unishark.util import (get_long_class_name, get_long_method_name, get_module_name)
 import threading
@@ -22,9 +23,20 @@ from collections import deque
 from inspect import ismodule
 
 _io = None
-if sys.version_info[0] < 3:  # python 2.7
+if version_info[0] < 3:  # Python2.x (2.7)
     _io = __import__('StringIO')
-else:
+
+    # Try making instance method picklable (for multiprocessing) in Python2
+    # No need to do this in Python3.x
+    def _reduce_method(m):
+        if m.im_self is None:
+            return getattr, (m.im_class, m.im_func.func_name)
+        else:
+            return getattr, (m.im_self, m.im_func.func_name)
+    copy_reg = __import__('copy_reg')
+    types = __import__('types')
+    copy_reg.pickle(types.MethodType, _reduce_method)
+else:  # Python3.x
     _io = __import__('io')
 
 if _io is None or not ismodule(_io):
@@ -96,7 +108,7 @@ EXPECTED_FAIL = 4
 UNEXPECTED_PASS = 5
 
 
-class BufferedTestResult(unittest.TextTestResult):
+class BufferedTestResult(TextTestResult):
     def __init__(self, stream, descriptions, verbosity):
         super(BufferedTestResult, self).__init__(stream, descriptions, verbosity)
         self.buffer = False
@@ -115,6 +127,24 @@ class BufferedTestResult(unittest.TextTestResult):
 
     def __iter__(self):
         return iter(self.children)
+
+    def __getstate__(self):
+        # called before pickling
+        state = self.__dict__.copy()
+        if 'stream' in state:
+            del state['stream']
+        if '_original_stderr' in state:
+            del state['_original_stderr']
+        if '_original_stdout' in state:
+            del state['_original_stdout']
+        return state
+
+    def __setstate__(self, state):
+        # called while unpickling
+        self.__dict__.update(state)
+        self.__dict__['stream'] = WritelnDecorator(stderr)
+        self.__dict__['_original_stderr'] = stderr
+        self.__dict__['_original_stdout'] = stdout
 
     def _add_result(self, test, duration, status, output, trace_back):
         mod_name = get_module_name(test)

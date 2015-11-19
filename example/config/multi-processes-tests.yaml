@@ -1,0 +1,57 @@
+
+suites:
+  suite_name_1:
+    package: example
+    groups:
+      group1:
+        granularity: method
+        methods: [test_module4.Test1.test_primes_1]
+  suite_name_2:
+    package: example
+    groups:
+      group1:
+        granularity: method
+        methods: [test_module4.Test1.test_primes_2]
+  suite_name_3:
+    package: example
+    groups:
+      group1:
+        granularity: method
+        methods: [test_module4.Test1.test_primes_3]
+  suite_name_4:
+    package: example
+    groups:
+      group1:
+        granularity: method
+        methods: [test_module4.Test1.test_primes_4]
+  suite_name_5:
+    package: example
+    groups:
+      group1:
+        granularity: method
+        methods: [test_module4.Test1.test_primes_5]
+  suite_name_6:
+    package: example
+    groups:
+      group1:
+        granularity: method
+        methods: [test_module4.Test1.test_primes_6]
+
+reporters:
+  html:
+    class: unishark.HtmlReporter
+    kwargs:
+      dest: logs
+      overview_title: 'Example Report'
+      overview_description: 'This is an example report'
+  xunit:
+    class: unishark.XUnitReporter
+    kwargs:
+      summary_title: 'Example Report'
+
+test:
+  suites: [suite_name_1, suite_name_2, suite_name_3, suite_name_4, suite_name_5, suite_name_6]
+  concurrency:
+    type: processes  # runs faster than type "threads" if the machine has multi-cores.
+    max_workers: 4  # runs faster than max_workers = 1 if the machine has multi-cores.
+  reporters: [html, xunit]
