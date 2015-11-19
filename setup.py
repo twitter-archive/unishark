@@ -3,7 +3,7 @@ from os import path
 from sys import version_info
 
 NAME = 'unishark'
-VERSION = '0.3.1'
+VERSION = '0.3.2'
 
 long_description = (
     open(path.join('docs', 'README.rst'), 'r').read() + '\n' +
