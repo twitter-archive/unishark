@@ -2,7 +2,6 @@ import unittest
 import unishark
 import os
 import shutil
-from sys import version_info
 
 
 class TestProgramTestCase(unittest.TestCase):
@@ -225,8 +224,6 @@ class DefaultTestProgramTestCase(TestProgramTestCase):
         filenames = os.listdir(os.path.join(self.dest))
         self.assertSetEqual(set(filenames), set(exp_filenames))
 
-    @unittest.skipIf(version_info[:2] == (3, 3),
-                     "Can't pickle <class 'traceback'> raised in child process in Python3.3")
     def test_multiprocessing_on_suites(self):
         dict_conf = {
             'suites': {

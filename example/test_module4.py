@@ -30,15 +30,20 @@ class Test1(unittest.TestCase):
     def test_primes_1(self):
         self.assertTrue(is_prime(PRIMES[0]))
 
+    @unittest.expectedFailure
     def test_primes_2(self):
         self.assertTrue(is_prime(PRIMES[1]))
+        raise AssertionError
 
     def test_primes_3(self):
         self.assertTrue(is_prime(PRIMES[2]))
+        raise RuntimeError('Let it throw error.')
 
+    @unittest.expectedFailure
     def test_primes_4(self):
         self.assertTrue(is_prime(PRIMES[3]))
 
+    @unittest.skip('')
     def test_primes_5(self):
         self.assertTrue(is_prime(PRIMES[4]))
 

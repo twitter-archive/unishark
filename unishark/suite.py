@@ -13,13 +13,15 @@
 # limitations under the License.
 
 
-from unittest.suite import TestSuite as UnitTestSuite, _ErrorHolder
+from unittest.suite import TestSuite as UnitTestSuite
 from unittest.case import SkipTest
 import sys
 from unishark.util import get_module_name
 from unishark.result import combine_results
 import concurrent.futures
 import logging
+
+_ErrorHolder = getattr(getattr(__import__('unittest'), 'suite'), '_ErrorHolder')
 
 log = logging.getLogger(__name__)
 

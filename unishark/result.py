@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from unittest import TextTestResult
-from unittest.runner import _WritelnDecorator as WritelnDecorator
 import time
 from sys import stdout, stderr, version_info
 import traceback
@@ -21,6 +20,8 @@ from unishark.util import (get_long_class_name, get_long_method_name, get_module
 import threading
 from collections import deque
 from inspect import ismodule
+
+WritelnDecorator = getattr(getattr(__import__('unittest'), 'runner'), '_WritelnDecorator')
 
 _io = None
 if version_info[0] < 3:  # Python2.x (2.7)
@@ -185,6 +186,23 @@ class BufferedTestResult(TextTestResult):
     def stopTest(self, test):
         self._mirrorOutput = False
         _io_buffer.free()
+        # In Python3.3,
+        # clear the exceptions info (from sys.exc_info()) stored in the test case obj after the test case runs,
+        # for traceback cannot be pickled during multiprocessing.
+        # It is OK to clear them because the exceptions info is already converted to strings
+        # and stored in the result obj by addFailure, addError or addExpectedFailure.
+        # Versions above Python3.3 already have the following cleanup steps in unittest.case.TestCase.run
+        if version_info[:2] == (3, 3):
+            outcome = getattr(test, '_outcomeForDoCleanups', None) or getattr(test, '_outcome', None)
+            if outcome:
+                if getattr(outcome, 'unexpectedSuccess', None):
+                    outcome.unexpectedSuccess = None
+                if getattr(outcome, 'expectedFailure', None):
+                    outcome.expectedFailure = None
+                if getattr(outcome, 'errors', None):
+                    outcome.errors.clear()
+                if getattr(outcome, 'failures', None):
+                    outcome.failures.clear()
 
     def addSuccess(self, test):
         duration = time.time() - self.start_time

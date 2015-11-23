@@ -28,8 +28,8 @@ _status_to_str = {
     SKIPPED: 'Skipped',
     ERROR: 'Error',
     FAIL: 'Failed',
-    EXPECTED_FAIL: 'Passed',
-    UNEXPECTED_PASS: 'Failed'
+    EXPECTED_FAIL: 'Expected Failure',
+    UNEXPECTED_PASS: 'Unexpected Success'
 }
 
 
