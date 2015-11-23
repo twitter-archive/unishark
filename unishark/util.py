@@ -71,7 +71,7 @@ def _count_relevant_tb_levels(tb):
 
 
 def exc_info_to_string(exc_info):
-    """Also see runner.BufferedTestResult"""
+    """Also see result.BufferedTestResult"""
     exctype, value, tb = exc_info
     # Skip test runner traceback levels
     while tb and _is_relevant_tb_level(tb):
