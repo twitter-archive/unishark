@@ -79,7 +79,7 @@ directly in a dict()):
 
 It configures 3 test suites with some of the test cases excluded, and running the defined set of tests concurrently, and generating both HTML and XUnit (default JUnit) format reports at the end of tests.
 
-NOTE: In 0.2.x versions, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '\<suite name\>'.
+NOTE: In 0.2.x versions, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '{suite name}'.
 
 To run it, simply add the following code:
 
