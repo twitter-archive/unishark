@@ -94,7 +94,7 @@ test:
   
 It configures 3 test suites with some of the test cases excluded, and running the defined set of tests concurrently, and generating both HTML and XUnit (default JUnit) format reports at the end of tests.
 
-**NOTE: In 0.2.x versions, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '\<suite name\>'. See why 0.2.x are NOT recommended in <a href="#Concurrent_Tests">Concurrent Tests</a> NOTE.**
+**NOTE: In 0.2.x versions, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '{suite name}'. See why 0.2.x are NOT recommended in <a href="#Concurrent_Tests">Concurrent Tests</a> NOTE.**
   
 To run it, simply add the following code:
 ```python
@@ -149,20 +149,20 @@ Each config must have a **test** dict, which has the following keys:
   
 This part describes **suites** dict in the test config, with the example in <a href="#Overview">Overview</a>:
 * Name of a suite or a group could be anything you like.
-* **suites[\<suite name\>]['package']**: Optional. A dotted path (relative to PYTHONPATH) indicating the python package where your test .py files locate. The tests in one suite have to be in the same package. To collect tests in another package, define another suite. However tests in one package can be divided into several suites.
-* **suites[\<suite name\>]['concurrency']** (since 0.3.0): Optional. Default is {'max_workers': 1, 'level': 'class', 'timeout': None}. See <a href="#Concurrent_Tests">Concurrent Tests</a>.
-* **suites[\<suite name\>]['concurrency']['max_workers']**: Required if 'concurrency' is defined. The max number of workers allocated to run the tests within a suite.
-* **suites[\<suite name\>]['concurrency']['level']**: Optional. Can be 'module', 'class' or 'method' to run the modules, classes, or methods concurrently. Default is 'class'.
-* **suites[\<suite name\>]['concurrency']['timeout']**: Optional. The maximum number of seconds to wait before getting the suite result. Can be an int or float. Default is None(no limit to the wait time). The wait only happens when max_workers > 1.
-* **suites[\<suite name\>]['groups'][\<group name\>]['granularity']**: Required. Must be one of 'package', 'module', 'class' and 'method'. If granularity is 'package', then suites[\<suite name\>]['package'] must be given.
-* **suites[\<suite name\>]['groups'][\<group name\>]['pattern']**: Optional. Only takes effect when granularity is 'package'. A python regular expression to match tests long names like 'module.class.method' in the package. Default is **'(\w+\\.){2}test\w*'** if not set.
-* **suites[\<suite name\>]['groups'][\<group name\>]['modules']**: Required if granularity is 'module'. A list of module names (test file names with .py trimmed).
-* **suites[\<suite name\>]['groups'][\<group name\>]['classes']**: Required if granularity is 'class'. A list of dotted class names conforming to 'module.class'.
-* **suites[\<suite name\>]['groups'][\<group name\>]['methods']**: Required if granularity is 'method'. A list of dotted method names conforming to 'module.class.method'.
-* **suites[\<suite name\>]['groups'][\<group name\>]['except_modules']**: Optional. Only takes effect when granularity is 'package'. A list of excluded module names.
-* **suites[\<suite name\>]['groups'][\<group name\>]['except_classes']**: Optional. Only takes effect when granularity is 'package' or 'module'. A list of excluded class names conforming to 'module.class'. 
-* **suites[\<suite name\>]['groups'][\<group name\>]['except_methods']**: Optional. Only takes effect when granularity is 'package', 'module' or 'class'. A list of excluded method names conforming to 'module.class.method'.
-* **suites[\<suite name\>]['groups'][\<group name\>]['disable']**: Optional. Excludes the group of tests if the value is True. Default is False if not set.
+* **suites[{suite name}]['package']**: Optional. A dotted path (relative to PYTHONPATH) indicating the python package where your test .py files locate. The tests in one suite have to be in the same package. To collect tests in another package, define another suite. However tests in one package can be divided into several suites.
+* **suites[{suite name}]['concurrency']** (since 0.3.0): Optional. Default is {'max_workers': 1, 'level': 'class', 'timeout': None}. See <a href="#Concurrent_Tests">Concurrent Tests</a>.
+* **suites[{suite name}]['concurrency']['max_workers']**: Required if 'concurrency' is defined. The max number of workers allocated to run the tests within a suite.
+* **suites[{suite name}]['concurrency']['level']**: Optional. Can be 'module', 'class' or 'method' to run the modules, classes, or methods concurrently. Default is 'class'.
+* **suites[{suite name}]['concurrency']['timeout']**: Optional. The maximum number of seconds to wait before getting the suite result. Can be an int or float. Default is None(no limit to the wait time). The wait only happens when max_workers > 1.
+* **suites[{suite name}]['groups'][{group name}]['granularity']**: Required. Must be one of 'package', 'module', 'class' and 'method'. If granularity is 'package', then suites[{suite name}]['package'] must be given.
+* **suites[{suite name}]['groups'][{group name}]['pattern']**: Optional. Only takes effect when granularity is 'package'. A python regular expression to match tests long names like 'module.class.method' in the package. Default is **'(\w+\\.){2}test\w*'** if not set.
+* **suites[{suite name}]['groups'][{group name}]['modules']**: Required if granularity is 'module'. A list of module names (test file names with .py trimmed).
+* **suites[{suite name}]['groups'][{group name}]['classes']**: Required if granularity is 'class'. A list of dotted class names conforming to 'module.class'.
+* **suites[{suite name}]['groups'][{group name}]['methods']**: Required if granularity is 'method'. A list of dotted method names conforming to 'module.class.method'.
+* **suites[{suite name}]['groups'][{group name}]['except_modules']**: Optional. Only takes effect when granularity is 'package'. A list of excluded module names.
+* **suites[{suite name}]['groups'][{group name}]['except_classes']**: Optional. Only takes effect when granularity is 'package' or 'module'. A list of excluded class names conforming to 'module.class'. 
+* **suites[{suite name}]['groups'][{group name}]['except_methods']**: Optional. Only takes effect when granularity is 'package', 'module' or 'class'. A list of excluded method names conforming to 'module.class.method'.
+* **suites[{suite name}]['groups'][{group name}]['disable']**: Optional. Excludes the group of tests if the value is True. Default is False if not set.
   
 To include/exclude a suite, add/remove the suite name in/from the **test['suites']** list in the **test** dict:
 ```yaml
@@ -273,7 +273,7 @@ test:
     max_workers: 4  # number of threads or processes depending on the type
 ```
   
-To enable concurrent execution within a suite, set 'concurrency' sub-dict (since 0.3.0) in the '\<suite name\>' dict:
+To enable concurrent execution within a suite, set 'concurrency' sub-dict (since 0.3.0) in the '{suite name}' dict:
 ```yaml
 suites:
   my_suite_name_1:
@@ -288,12 +288,12 @@ suites:
 * Versions < 0.3.2 only support threading concurrency.
 * Versions 0.2.x are NOT recommended because:
   - Versions >= 0.3.0 adopt a new concurrent execution model internally. Test fixtures setUpModule/tearDownModule setUpClass/tearDownClass will be executed once and only once in a suite no matter what concurrency level(module/class/method) of the suite is.
-  - In 0.2.x versions, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '\<suite name\>'.
+  - In 0.2.x versions, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '{suite name}'.
   - In 0.2.x versions, on the condition of thread-safety, the recommended concurrency level is: If there is setUpModule/tearDownModule in a module, set 'concurrency_level' to 'module', otherwise setUpModule/tearDownModule may run multiple times for the module; If there is setUpClass/tearDownClass in a class, set 'concurrency_level' to 'class' or 'module', otherwise setUpClass/tearDownClass may run multiple times for the class; If there are only setUp/tearDown, 'concurrency_level' can be set to any level.
 * If max_workers <= 1, it is just sequential running.
 * **Users are responsible for reasoning the thread-safety** before enabling concurrent execution. For example, when concurrency level is 'method', race conditions will occur if any method including setUp/tearDown tries to modify a class-scope shared resource. In this case, user should set concurrency level to 'class' or 'module'.
 * To optimize the running speed:
-  - If your tests are **IO bound** (read/write, send/receive): gradually increase suites[\<suite name\>]['concurrency']['max_workers'] and test['concurrency']['max_workers'] ('type' could be either 'processes' or 'threads') till the total time taken is the least. It has NO better effect to set test['concurrency']['max_workers'] > # of suites or suites[\<suite name\>]['concurrency']['max_workers'] > # of modules/classes/methods when concurrency level is module/class/method.
+  - If your tests are **IO bound** (read/write, send/receive): gradually increase suites[{suite name}]['concurrency']['max_workers'] and test['concurrency']['max_workers'] until the total time taken is the least. It has NO better effect to set test['concurrency']['max_workers'] > # of suites or suites[{suite name}]['concurrency']['max_workers'] > # of modules/classes/methods when concurrency level is module/class/method.
   - If your tests are **CPU bound**: for CPython, define multiple suites and run them with up to # of cores processes, and do not configure threading within a suite (threading might even make CPU bound program slower due to GIL). For Jython, your tests should still be able to benefit from threading since threads are mapped to Java threads. Jython does not have GIL thus does not support multiprocessing to bypass GIL anyway.
   
 
