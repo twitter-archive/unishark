@@ -225,7 +225,6 @@ class DefaultTestProgramTestCase(TestProgramTestCase):
         filenames = os.listdir(os.path.join(self.dest))
         self.assertSetEqual(set(filenames), set(exp_filenames))
 
-    @unittest.skipIf(get_interpreter().startswith('jython'), 'Jython does not support multiprocessing.')
     def test_multiprocessing_on_suites(self):
         dict_conf = {
             'suites': {
@@ -270,14 +269,19 @@ class DefaultTestProgramTestCase(TestProgramTestCase):
                 'concurrency': {'max_workers': 2, 'type': 'processes'},
                 }
         }
-        program = unishark.DefaultTestProgram(dict_conf)
-        self.assertEqual(program.concurrency, {'max_workers': 2, 'type': 'processes', 'timeout': None})
-        exit_code = program.run()
-        self.assertEqual(exit_code, 1)
-        exp_filenames = ['index.html', 'overview.html', 'my_suite_1_result.html', 'my_suite_2_result.html',
-                         'my_suite_1_xunit_result.xml', 'my_suite_2_xunit_result.xml', 'summary_xunit_result.xml']
-        filenames = os.listdir(os.path.join(self.dest))
-        self.assertSetEqual(set(filenames), set(exp_filenames))
+        if get_interpreter().startswith('jython'):
+            with self.assertRaises(ValueError) as cm:
+                unishark.DefaultTestProgram(dict_conf)
+            self.assertEqual(cm.exception.message, 'Jython does not support multiprocessing.')
+        else:
+            program = unishark.DefaultTestProgram(dict_conf)
+            self.assertEqual(program.concurrency, {'max_workers': 2, 'type': 'processes', 'timeout': None})
+            exit_code = program.run()
+            self.assertEqual(exit_code, 1)
+            exp_filenames = ['index.html', 'overview.html', 'my_suite_1_result.html', 'my_suite_2_result.html',
+                             'my_suite_1_xunit_result.xml', 'my_suite_2_xunit_result.xml', 'summary_xunit_result.xml']
+            filenames = os.listdir(os.path.join(self.dest))
+            self.assertSetEqual(set(filenames), set(exp_filenames))
 
     def test_illegal_suites_concurrency_type(self):
         dict_conf = {
