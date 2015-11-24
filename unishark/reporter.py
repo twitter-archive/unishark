@@ -18,10 +18,12 @@ import os
 import codecs
 import datetime
 import abc
-import unishark
+from unishark.util import get_interpreter
 from unishark.result import (PASS, SKIPPED, ERROR, FAIL, EXPECTED_FAIL, UNEXPECTED_PASS)
+import unishark
 import threading
-import multiprocessing
+
+multiprocessing = None if get_interpreter().startswith('jython') else __import__('multiprocessing')
 
 _status_to_str = {
     PASS: 'Passed',
@@ -38,7 +40,7 @@ class Reporter(object):
     __metaclass__ = abc.ABCMeta
 
     thread_lock = threading.RLock()
-    process_lock = multiprocessing.RLock()
+    process_lock = multiprocessing.RLock() if multiprocessing else None
 
     def __init__(self):
         self._actual_duration = None
@@ -90,12 +92,19 @@ class TemplatesReporter(Reporter):
             loader = jinja2.FileSystemLoader(self.templates_path, encoding='utf-8')
         return jinja2.Environment(loader=loader, autoescape=False)
 
+    def _make_output_dir(self):
+        if self.dest:
+            if not os.path.exists(self.dest):
+                os.makedirs(self.dest)
+
     def make_output_dir(self):
-        with Reporter.process_lock:
+        if Reporter.process_lock:
+            with Reporter.process_lock:
+                with Reporter.thread_lock:
+                    self._make_output_dir()
+        else:
             with Reporter.thread_lock:
-                if self.dest:
-                    if not os.path.exists(self.dest):
-                        os.makedirs(self.dest)
+                self._make_output_dir()
 
 
 class Summary(object):
@@ -128,7 +137,7 @@ class Summary(object):
 class TestsSummary(Summary):
     def __init__(self, name):
         super(TestsSummary, self).__init__(name)
-        self.suite_sum_list = multiprocessing.Manager().list()
+        self.suite_sum_list = multiprocessing.Manager().list() if multiprocessing else list()
 
     def build(self, actual_duration=None):
         if self.suite_sum_list:

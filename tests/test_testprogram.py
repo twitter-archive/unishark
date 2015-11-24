@@ -2,6 +2,7 @@ import unittest
 import unishark
 import os
 import shutil
+from unishark.util import get_interpreter
 
 
 class TestProgramTestCase(unittest.TestCase):
@@ -224,6 +225,7 @@ class DefaultTestProgramTestCase(TestProgramTestCase):
         filenames = os.listdir(os.path.join(self.dest))
         self.assertSetEqual(set(filenames), set(exp_filenames))
 
+    @unittest.skipIf(get_interpreter().startswith('jython'), 'Jython does not support multiprocessing.')
     def test_multiprocessing_on_suites(self):
         dict_conf = {
             'suites': {

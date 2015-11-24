@@ -16,6 +16,7 @@
 import inspect
 from os import sep
 from traceback import format_exception
+from sys import executable
 
 
 class ContextManager(object):
@@ -33,6 +34,10 @@ class ContextManager(object):
 
 
 contexts = ContextManager()
+
+
+def get_interpreter():
+    return executable.split(sep)[-1].lower()
 
 
 def get_module_name(obj):

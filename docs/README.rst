@@ -9,7 +9,7 @@ following ways:
 -  Generating polished test reports in HTML/XUnit formats.
 -  Offering data-driven decorator to accelerate tests writing.
 
-For existing unittests, the first three features could be gained immediately with a single config, without changing any test code.
+For existing unittests, the first three features could be obtained immediately with a single config, without changing any test code.
 
 The Test Config
 ---------------
@@ -72,13 +72,14 @@ directly in a dict()):
     test:
       suites: [my_suite_name_1, my_suite_name_2, my_suite_name_3]
       concurrency:
+        type: processes
         max_workers: 3
       reporters: [html, xunit]
       name_pattern: '^test\w*'
 
-It configures 3 test suites with some of the test cases excluded, and running the defined set of tests concurrently (multi-threads), and generating both HTML and XUnit (default JUnit) format reports at the end of tests.
+It configures 3 test suites with some of the test cases excluded, and running the defined set of tests concurrently, and generating both HTML and XUnit (default JUnit) format reports at the end of tests.
 
-NOTE: For versions below 0.3.0, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '<suite name>'. For versions since 0.3.0, there is 'concurrency' sub-dict.
+NOTE: In 0.2.x versions, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '\<suite name\>'.
 
 To run it, simply add the following code:
 

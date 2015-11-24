@@ -1,6 +1,6 @@
 # unishark [![Build Status](https://travis-ci.org/twitter/unishark.svg?branch=master)](https://travis-ci.org/twitter/unishark) [![Coverage Status](https://coveralls.io/repos/twitter/unishark/badge.png?branch=master)](https://coveralls.io/r/twitter/unishark?branch=master)
   
-A lightweight unittest extension (that extends unitest2)
+A python test framework extending unittest (unittest2), inspired by testng
   
 * <a href="#Overview">Overview</a>
 * <a href="#Prerequisites">Prerequisites</a>
@@ -29,7 +29,7 @@ unishark extends unittest (to be accurate, unittest2) in the following ways:
 * Generating polished test reports in HTML/XUnit formats.
 * Offering data-driven decorator to accelerate tests writing.
   
-For existing unittests, the first three features could be gained immediately with a single config, without changing any test code.
+For existing unittests, the first three features could be obtained immediately with a single config, without changing any test code.
   
 Here is an example config in YAML format (you could also write it directly in a <code>dict()</code>):
 ```yaml
@@ -86,14 +86,15 @@ reporters:
 test:
   suites: [my_suite_name_1, my_suite_name_2, my_suite_name_3]
   concurrency:
+    type: processes
     max_workers: 3
   reporters: [html, xunit]
   name_pattern: '^test\w*'
 ```
   
-It configures 3 test suites with some of the test cases excluded, and running the defined set of tests concurrently (multi-threads), and generating both HTML and XUnit (default JUnit) format reports at the end of tests.
+It configures 3 test suites with some of the test cases excluded, and running the defined set of tests concurrently, and generating both HTML and XUnit (default JUnit) format reports at the end of tests.
 
-**NOTE: For versions below 0.3.0, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '\<suite name\>'. For versions since 0.3.0, there is 'concurrency' sub-dict.**
+**NOTE: In 0.2.x versions, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '\<suite name\>'. See why 0.2.x are NOT recommended in <a href="#Concurrent_Tests">Concurrent Tests</a> NOTE.**
   
 To run it, simply add the following code:
 ```python
@@ -116,11 +117,12 @@ And a HTML report is like:
   
 Language:
 * Python 2.7, 3.3, 3.4, 3.5
+* Jython 2.7
   
 3rd Party Dependencies:
 * Jinja2>=2.7.2
 * MarkupSafe>=0.15
-* futures>=2.1.1
+* futures>=2.1.1 (standard lib in Python3.x)
   
 OS:
 * Tested: Linux, MacOS X
@@ -136,8 +138,9 @@ pip install unishark
 Each config must have a **test** dict, which has the following keys:
 * **test['suites']**: Required. A list of suite names defined in **suites** dict. See <a href="#Customize_Test_Suites">Customize Test Suites</a>.
 * **test['reporters']**: Optional. A list of reporter names defined in **reporters** dict. See <a href="#Test_Reports">Test Reports</a>.
-* **test['concurrency']** (since 0.3.0): Optional. See <a href="#Concurrent_Tests">Concurrent Tests</a>.
+* **test['concurrency']** (since 0.3.0): Optional. Default is {'max_workers': 1, 'type': 'threads', 'timeout': None}. See <a href="#Concurrent_Tests">Concurrent Tests</a>.
 * **test['concurrency']['max_workers']**: Required if 'concurrency' is defined. The max number of workers allocated to run the test suites.
+* **test['concurrency']['type']**: Optional. Run the suites included in test['suites'] concurrently with 'threads' or 'processes'. Default is 'threads' if not set.
 * **test['concurrency']['timeout']**: Optional. The maximum number of seconds to wait before getting results. Can be an int or float. Default is None(no limit to the wait time). The wait only happens when max_workers > 1.
 * **test['name_pattern']**: Optional. A python regular expression to match the test method names. All the tests whose method name does not match the pattern will be filtered out. Default **'^test\w*'** if not set.
   
@@ -191,7 +194,7 @@ The arguments of the built-in XUnitReporter and their default values are:
 * report_template=None
 * summary_template=None
   
-Configuring multiple reporters which generate different formats of reports is allowed, and only a single run of the tests is needed to generate all different formats.
+Configuring **multiple reporters** which generate different formats of reports is allowed, and only a single run of the tests is needed to generate all different formats.
   
 To include/exclude a reporter, add/remove the reporter name in/from the **test['reporters']** list in the **test** dict:
 ```yaml
@@ -235,13 +238,28 @@ loggers:
 **NOTE**: 
 * unishark does NOT buffer stdout and stderr. So if you use <code>print('some message')</code> in a test case, the message will be output to stdout during the test running.
 * Suite names are reflected in the reports while groups are not. Test cases are grouped by class then module in the reports. **groups** config is simply for conveniently including/excluding a group of test cases by enabling/disabling the group.
-  
+
+To output unishark's own logs to stdout:
+```yaml
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stdout
+
+loggers:
+  unishark:
+    level: INFO
+    handlers: [console]
+    propagate: False
+```
+
 <a name="Concurrent_Tests"></a>
 ### Concurrent Tests
   
 Concurrency in unishark can be:  
-* concurrent execution of multiple suites.
-* concurrent execution within a suite:  
+* concurrent execution of multiple suites (**with processes or threads**) .
+* concurrent execution within a suite (**only with threads**) :
   - at module level.
   - at class level.
   - at method level.
@@ -251,8 +269,8 @@ To enable concurrent execution of multiple suites, set 'concurrency' sub-dict (s
 test:
   ...
   concurrency:
-    max_workers: 3
-    timeout: 1800
+    type: processes  # or threads
+    max_workers: 4  # number of threads or processes depending on the type
 ```
   
 To enable concurrent execution within a suite, set 'concurrency' sub-dict (since 0.3.0) in the '\<suite name\>' dict:
@@ -260,20 +278,23 @@ To enable concurrent execution within a suite, set 'concurrency' sub-dict (since
 suites:
   my_suite_name_1:
     concurrency:
-      max_workers: 6
-      level: method
-      timeout: 1800
+      max_workers: 6  # no choices of concurrency type, just threads
+      level: method  # or class or module
     ...
 ```
   
 **NOTE**:
-* For versions **below 0.3.0**, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '\<suite name\>'.
-* Currently only multi-threading is supported, not multi-processing. Multi-threading concurrency will significantly shorten the running time of I/O bound tests (which many practical cases are, e.g., http requests). But it is not so useful when the tests are CPU bound due to python's GIL.
+* **Since 0.3.2**, both threading and multiprocessing concurrency are supported. In CPython, threading can benefit IO bound tests while cannot benefit CPU bound tests due to GIL, whereas multiprocessing can bypass GIL and benefit CPU bound tests.
+* Versions < 0.3.2 only support threading concurrency.
+* Versions 0.2.x are NOT recommended because:
+  - Versions >= 0.3.0 adopt a new concurrent execution model internally. Test fixtures setUpModule/tearDownModule setUpClass/tearDownClass will be executed once and only once in a suite no matter what concurrency level(module/class/method) of the suite is.
+  - In 0.2.x versions, 'max_workers' was set directly under 'test', and 'max_workers' and 'concurrency_level' were set directly under '\<suite name\>'.
+  - In 0.2.x versions, on the condition of thread-safety, the recommended concurrency level is: If there is setUpModule/tearDownModule in a module, set 'concurrency_level' to 'module', otherwise setUpModule/tearDownModule may run multiple times for the module; If there is setUpClass/tearDownClass in a class, set 'concurrency_level' to 'class' or 'module', otherwise setUpClass/tearDownClass may run multiple times for the class; If there are only setUp/tearDown, 'concurrency_level' can be set to any level.
 * If max_workers <= 1, it is just sequential running.
 * **Users are responsible for reasoning the thread-safety** before enabling concurrent execution. For example, when concurrency level is 'method', race conditions will occur if any method including setUp/tearDown tries to modify a class-scope shared resource. In this case, user should set concurrency level to 'class' or 'module'.
-* Versions **since 0.3.0** use a new concurrent execution model internally. Test fixtures setUpModule/tearDownModule setUpClass/tearDownClass will be executed **once and only once** in a suite no matter what concurrency level(module/class/method) of the suite is.
-* For versions **below 0.3.0**: on the condition of thread-safety, the recommended concurrency level for most user cases are: If there is setUpModule/tearDownModule in a module, set 'concurrency_level' to 'module', otherwise setUpModule/tearDownModule may run multiple times for the module; If there is setUpClass/tearDownClass in a class, set 'concurrency_level' to 'class' or 'module', otherwise setUpClass/tearDownClass may run multiple times for the class; If there are only setUp/tearDown, 'concurrency_level' can be set to any level.
-* To achieve full concurrency, set suites[\<suite name\>]['concurrency']['max_workers'] >= number of modules/classes/methods when concurrency level is module/class/method, and set test['concurrency']['max_workers'] >= number of test['suites'].
+* To optimize the running speed:
+  - If your tests are **IO bound** (read/write, send/receive): gradually increase suites[\<suite name\>]['concurrency']['max_workers'] and test['concurrency']['max_workers'] ('type' could be either 'processes' or 'threads') till the total time taken is the least. It has NO better effect to set test['concurrency']['max_workers'] > # of suites or suites[\<suite name\>]['concurrency']['max_workers'] > # of modules/classes/methods when concurrency level is module/class/method.
+  - If your tests are **CPU bound**: for CPython, define multiple suites and run them with up to # of cores processes, and do not configure threading within a suite (threading might even make CPU bound program slower due to GIL). For Jython, your tests should still be able to benefit from threading since threads are mapped to Java threads. Jython does not have GIL thus does not support multiprocessing to bypass GIL anyway.
   
 
 <a name="Data_Driven"></a>
@@ -458,7 +479,7 @@ reporters:
 * The customized templates must also be <a href="http://jinja.pocoo.org/docs/dev/templates">Jinja2</a> templates
 * Once you decide to use your own templates, you have to specify all of the 'teamplates_path' and '*_template' arguments. If one of them is None or empty, the reporters will still use the default templates carried with unishark.
   
-If the above customization cannot satisfy you, you could write your own reporter class extending <code>unishark.Reporter</code> abstract class. Either passing the reporter instance to <code>unishark.BufferedTestRunner</code> or configuring the constructor in the test config will make unishark run your reporter.
+If the above customization cannot satisfy you, you could write your own reporter class extending <code>unishark.Reporter</code> abstract class. Either passing the reporter instance to <code>unishark.BufferedTestRunner</code> or configuring the initializer in the test config will make unishark run your reporter.
   
 <a name="Implement_TestProgram"></a>
 ### Implement TestProgram

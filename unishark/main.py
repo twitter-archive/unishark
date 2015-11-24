@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import abc
+from unishark.util import get_interpreter
 import unishark
 import sys
 import logging
 import concurrent.futures
 import time
-
 
 log = logging.getLogger(__name__)
 
@@ -66,6 +66,8 @@ class DefaultTestProgram(TestProgram):
         concur_types = ['threads', 'processes']
         if concurrency['type'] not in concur_types:
             raise ValueError('Concurrency type is not one of %r.' % concur_types)
+        if get_interpreter().startswith('jython') and concurrency['type'] == 'processes':
+            raise ValueError('Jython does not support multiprocessing.')
         return concurrency
 
     @staticmethod
