@@ -1,6 +1,14 @@
 CHANGELOG
 =========
 
+0.3.2 (2015-11-24)
+------------------
+
+ - added multiprocessing suites (which can bypass CPython's GIL and utilize multi-cores).
+ - modified result, runner and reporter classes to be picklable for multiprocessing.
+ - supported running with Jython.
+
+
 0.3.1 (2015-11-12)
 ------------------
 
@@ -19,7 +27,7 @@ CHANGELOG
 0.2.3 (2015-10-01)
 ------------------
 
- - enable 'module' and 'method' level concurrent execution in a suite.
+ - enabled 'module' and 'method' level concurrent execution in a suite.
 
 
 0.2.2 (2015-08-12)
